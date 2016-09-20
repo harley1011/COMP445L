@@ -1,6 +1,6 @@
 import sys
 import getopt
-
+import lib.httpc as httpc
 DETAILED_USAGE = 'httpc (get|post) [-v] (-h "k:v")* [-d inline-data] [-f file] URL'
 DETAILED_USAGE_GET = 'httpc (get|post) [-v] (-h "k:v")* [-d inline-data] [-f file] URL'
 DETAILED_USAGE_POST = 'httpc (get|post) [-v] (-h "k:v")* [-d inline-data] [-f file] URL'
@@ -9,7 +9,7 @@ DETAILED_USAGE_POST = 'httpc (get|post) [-v] (-h "k:v")* [-d inline-data] [-f fi
 def main(argv):
 
     request_type = None
-
+    h = httpc.HttpConnection()
     #check action
     if len(argv) == 0:
         give_help()
