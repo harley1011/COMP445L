@@ -8,15 +8,21 @@ class HttpConnection(object):
         self.http_version = version
 
     def post(self):
-        self.request_line('POST', self.connection_info.path, self.http_version)
+        self.create_request_line('POST', self.connection_info.path, self.http_version)
 
     def get(self):
-        request = self.request_line('GET',self.connection_info.path, self.http_version)
-        response = self.tcp_send('www.' + self.connection_info.netloc,80, request)
-        print(response)
+        path = self.connection_info.path
+        if self.connection_info.query is not None and len(self.connection_info.query) > 0:
+            path = '{}?{}'.format(path, self.connection_info.query)
+        request_line = self.create_request_line('GET', path, self.http_version)
+        response = self.tcp_send('www.' + self.connection_info.netloc,80, request_line)
+        self.response = response.decode("utf-8")
 
+
+    def getResponse(self):
+        return self.response
     # Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
-    def request_line(self, method_type, url, version):
+    def create_request_line(self, method_type, url, version):
         return '{} {} {}\n\n'.format(method_type, url, version)
 
     def tcp_send(self, host, port, message):
@@ -25,7 +31,7 @@ class HttpConnection(object):
         tcpsoc.sendall(message.encode())
         response = tcpsoc.recv(4096)
         tcpsoc.close()
-        return str(response)
+        return response
 
 
 if __name__ == '__main__':
