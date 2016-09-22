@@ -38,31 +38,31 @@ def main(argv):
         if opt == '-v':
             isVerbose = True
         elif opt == '-h':
-            print 'Option H'
+            print('Option H')
         elif opt == '-d':
             if data is not None:
-                print 'Cannot use options -d and -f at the same time'
+                print('Cannot use options -d and -f at the same time')
                 sys.exit()
             data = arg
         elif opt == '-f':
             if data is not None:
-                print 'Cannot use options -d and -f at the same time'
+                print ('Cannot use options -d and -f at the same time')
                 sys.exit()
             data = arg
 
-    print data
+    print(data)
 
 
 def give_help():
-    print DETAILED_USAGE
+    print(DETAILED_USAGE)
     sys.exit()
 
 
 def give_help_type(type):
     if type == 'get':
-        print DETAILED_USAGE_GET
+        print(DETAILED_USAGE_GET)
     elif type == 'post':
-        print DETAILED_USAGE_POST
+        print(DETAILED_USAGE_POST)
     sys.exit()
 
 
