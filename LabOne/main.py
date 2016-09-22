@@ -26,7 +26,7 @@ def main(argv):
     argv = argv[1:]
 
     try:
-        opts, args = getopt.getopt(argv, "vhd:f:")
+        opts, args = getopt.getopt(argv, "vh:d:f:")
     except getopt.GetoptError:
         give_help()
 
