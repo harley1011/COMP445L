@@ -37,7 +37,41 @@ Either [-d] or [-f] can be used, but not both.
 
 
 def main(argv):
+    """
+    Creates a request object containing all the required parameters to form a GET or POST HTTP request.
 
+    The format of the GET request object is as follows:
+
+    {
+        'type': 'GET',
+        'url': 'www.google.com',
+        'header':
+            {
+                'key1': 'value1',
+                'key2': 'value2'
+            },
+        'verbose': True
+    }
+
+    The format of the POST request object is as follows:
+
+    {
+        'type': 'POST',
+        'url': 'www.google.com',
+        'header':
+            {
+                'key1': 'value1',
+                'key2': 'value2'
+            },
+        'verbose': True,
+        'data': {
+            'type': 'inline',  # [inline] or [file]
+            'value': 'test'
+        }
+    }
+    """
+
+    # create request object
     request = {}
 
     # check request
@@ -55,6 +89,7 @@ def main(argv):
 
     argv = argv[1:]
 
+    # parse options
     try:
         opts, args = getopt.getopt(argv, "vh:d:f:")
     except getopt.GetoptError:
@@ -62,16 +97,22 @@ def main(argv):
 
     request['verbose'] = False
     request['header'] = {}
-    request['data'] = {
-        'type': None,  # [inline] or [file]
-        'value': None
-    }
+
+    if request['type'] == 'POST':
+        request['data'] = {
+            'type': None,  # [inline] or [file]
+            'value': None
+        }
 
     count = len(argv)
+
+    # cycle through options
     for opt, arg in opts:
+        # verbose request
         if opt == '-v':
             request['verbose'] = True
             count -= 1
+        # header data
         elif opt == '-h':
             header_d = get_header_data(arg)
             if header_d is not None:
@@ -80,6 +121,7 @@ def main(argv):
                 print('-h accepts an argument of format "key:value"')
                 sys.exit()
             count -= 2
+        # inline data (POST request only)
         elif opt == '-d':
             if request['data']['value'] is not None:
                 print('Cannot use options -d and -f at the same time')
@@ -90,6 +132,7 @@ def main(argv):
             request['data']['type'] = 'inline'
             request['data']['value'] = arg
             count -= 2
+        # file data (POST request only)
         elif opt == '-f':
             if request['data']['value'] is not None:
                 print ('Cannot use options -d and -f at the same time')
@@ -101,13 +144,12 @@ def main(argv):
             request['data']['value'] = arg
             count -= 2
 
+    # check if a URL is provided
     if count != 1:
         print ('No URL was provided')
         sys.exit()
 
     request['url'] = argv[-1]
-
-    print request
 
 
 def give_help():
