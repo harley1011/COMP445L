@@ -5,39 +5,6 @@ import lib.detailedusage as detailedusage
 
 
 def main(argv):
-    """
-    Creates a request object containing all the required parameters to form a GET or POST HTTP request.
-
-    The format of the GET request object is as follows:
-
-    {
-        'type': 'GET',
-        'url': 'www.google.com',
-        'header':
-            {
-                'key1': 'value1',
-                'key2': 'value2'
-            },
-        'verbose': True
-    }
-
-    The format of the POST request object is as follows:
-
-    {
-        'type': 'POST',
-        'url': 'www.google.com',
-        'header':
-            {
-                'key1': 'value1',
-                'key2': 'value2'
-            },
-        'verbose': True,
-        'data': {
-            'type': 'inline',  # [inline] or [file]
-            'value': 'test'
-        }
-    }
-    """
 
     # create request object
     request = {}
