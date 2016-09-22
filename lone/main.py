@@ -128,7 +128,6 @@ def get_file_data(request, arg):
 
 def send_http(request):
     url_parse = urlparse(request['url'])
-    print(url_parse)
 
     http_connection = httpc.HttpConnection(url_parse.netloc, 80)
 
@@ -139,20 +138,6 @@ def send_http(request):
 
     if request['verbose']:
         print(result)
-
-    """http_connection = httpc.HttpConnection(request['url'], "HTTP/1.0")
-
-    print_request(request, http_connection)
-
-    if request['type'] == 'GET':
-        http_connection.get()
-    elif request['type'] == 'POST':
-        http_connection.post()
-
-    result = http_connection.getResponse()
-
-    if request['verbose']:
-        print(result)"""
 
 
 def print_request(request):
