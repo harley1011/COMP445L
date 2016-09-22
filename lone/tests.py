@@ -7,9 +7,9 @@ import http.client
 class TestHttp(unittest.TestCase):
 
     def test_http_get_method_without_parameters(self):
-        http_connection = httpc.HttpConnection("http://httpbin.org/status/418", "HTTP/1.0")
-        http_connection.get()
-        result = http_connection.getResponse()
+        http_connection = httpc.HttpConnection("www.httpbin.org", 80)
+        http_connection.request('GET', '/status/418')
+        result = http_connection.getresponse()
 
         conn = http.client.HTTPSConnection("www.httpbin.org")
         conn.request("GET", "/status/418")
@@ -20,7 +20,6 @@ class TestHttp(unittest.TestCase):
 
     def test_http_get_method_with_parameters(self):
         http_connection = httpc.HttpConnection("http://httpbin.org/get?course=networking&assignment=1", "HTTP/1.0")
-        http_connection.get()
         self.assertTrue(True)
 
 
