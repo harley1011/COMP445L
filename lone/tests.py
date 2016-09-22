@@ -13,11 +13,10 @@ class TestHttp(unittest.TestCase):
 
         conn = http.client.HTTPSConnection("www.httpbin.org")
         conn.request("GET", "/status/418")
-        actual_result = conn.getresponse()
+        actual_result = conn.getresponse().read().decode("utf-8")
         conn.close()
-        #print(result)
-        #print(actual_result.status)
-        self.assertTrue(result, actual_result.read())
+        print(result)
+        self.assertEquals(result, actual_result)
 
     def test_http_get_method_with_parameters(self):
         http_connection = httpc.HttpConnection("http://httpbin.org/get?course=networking&assignment=1", "HTTP/1.0")
