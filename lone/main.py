@@ -4,6 +4,7 @@ import re
 import lib.detailedusage as detailedusage
 import lib.httpc as httpc
 import json
+from urllib.parse import urlparse
 
 
 def main(argv):
@@ -126,7 +127,20 @@ def get_file_data(request, arg):
 
 
 def send_http(request):
-    http_connection = httpc.HttpConnection(request['url'], "HTTP/1.0")
+    url_parse = urlparse(request['url'])
+    print(url_parse)
+
+    http_connection = httpc.HttpConnection(url_parse.netloc, 80)
+
+    print_request(request)
+
+    http_connection.request(request['type'], url_parse.path)
+    result = http_connection.getresponse()
+
+    if request['verbose']:
+        print(result)
+
+    """http_connection = httpc.HttpConnection(request['url'], "HTTP/1.0")
 
     print_request(request, http_connection)
 
@@ -138,10 +152,10 @@ def send_http(request):
     result = http_connection.getResponse()
 
     if request['verbose']:
-        print(result)
+        print(result)"""
 
 
-def print_request(request, http_connection):
+def print_request(request):
     output = {}
 
     output['url'] = request['url']
