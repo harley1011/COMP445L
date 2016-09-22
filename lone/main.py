@@ -10,17 +10,7 @@ def main(argv):
     request = {}
 
     # check request
-    if len(argv) == 0:
-        give_help()
-    elif argv[0].lower() == 'get':
-        request['type'] = 'GET'
-    elif argv[0].lower() == 'post':
-        request['type'] = 'POST'
-    elif argv[0].lower() == 'help':
-        if len(argv) > 1 and (argv[1].lower() == 'get' or argv[1].lower() == 'post'):
-            give_help_request(argv[1].lower())
-        else:
-            give_help()
+    request['type'] = get_request_type(argv)
 
     argv = argv[1:]
 
@@ -49,34 +39,15 @@ def main(argv):
             count -= 1
         # header data
         elif opt == '-h':
-            header_d = get_header_data(arg)
-            if header_d is not None:
-                request['header'][header_d['key']] = header_d['value']
-            else:
-                print('-h accepts an argument of format "key:value"')
-                sys.exit()
+            get_header_data(request, arg)
             count -= 2
         # inline data (POST request only)
         elif opt == '-d':
-            if request['data']['value'] is not None:
-                print('Cannot use options -d and -f at the same time')
-                sys.exit()
-            elif request['type'] == 'GET':
-                print('Cannot use options -d with a GET request')
-                sys.exit()
-            request['data']['type'] = 'inline'
-            request['data']['value'] = arg
+            get_inline_data(request, arg)
             count -= 2
         # file data (POST request only)
         elif opt == '-f':
-            if request['data']['value'] is not None:
-                print ('Cannot use options -d and -f at the same time')
-                sys.exit()
-            elif request['type'] == 'GET':
-                print('Cannot use options -d with a GET request')
-                sys.exit()
-            request['data']['type'] = 'file'
-            request['data']['value'] = arg
+            get_file_data(request, arg)
             count -= 2
 
     # check if a URL is provided
@@ -85,6 +56,22 @@ def main(argv):
         sys.exit()
 
     request['url'] = argv[-1]
+
+    print(request)
+
+
+def get_request_type(argv):
+    if len(argv) == 0:
+        give_help()
+    elif argv[0].lower() == 'get':
+        return 'GET'
+    elif argv[0].lower() == 'post':
+        return 'POST'
+    elif argv[0].lower() == 'help':
+        if len(argv) > 1 and (argv[1].lower() == 'get' or argv[1].lower() == 'post'):
+            give_help_request(argv[1].lower())
+        else:
+            give_help()
 
 
 def give_help():
@@ -97,16 +84,43 @@ def give_help_request(type):
     sys.exit()
 
 
-def get_header_data(data):
+def get_header_data(request, data):
     match_obj = re.match(r'(.*):(.*)?', data, re.M|re.I)
 
+    header_d = None
     if match_obj:
         key_value = {}
         key_value['key'] = match_obj.group(1)
         key_value['value'] = match_obj.group(2)
-        return key_value
+        header_d =  key_value
+
+    if header_d is not None:
+        request['header'][header_d['key']] = header_d['value']
     else:
-        return None
+        print('-h accepts an argument of format "key:value"')
+        sys.exit()
+
+
+def get_inline_data(request, arg):
+    if request['data']['value'] is not None:
+        print('Cannot use options -d and -f at the same time')
+        sys.exit()
+    elif request['type'] == 'GET':
+        print('Cannot use options -d with a GET request')
+        sys.exit()
+    request['data']['type'] = 'inline'
+    request['data']['value'] = arg
+
+
+def get_file_data(request, arg):
+    if request['data']['value'] is not None:
+        print ('Cannot use options -d and -f at the same time')
+        sys.exit()
+    elif request['type'] == 'GET':
+        print('Cannot use options -d with a GET request')
+        sys.exit()
+    request['data']['type'] = 'file'
+    request['data']['value'] = arg
 
 
 main(sys.argv[1:])
