@@ -2,6 +2,8 @@ import sys
 import getopt
 import re
 import lib.detailedusage as detailedusage
+import lib.httpc as httpc
+import json
 
 
 def main(argv):
@@ -57,7 +59,7 @@ def main(argv):
 
     request['url'] = argv[-1]
 
-    print(request)
+    send_http(request)
 
 
 def get_request_type(argv):
@@ -121,6 +123,35 @@ def get_file_data(request, arg):
         sys.exit()
     request['data']['type'] = 'file'
     request['data']['value'] = arg
+
+
+def send_http(request):
+    http_connection = httpc.HttpConnection(request['url'], "HTTP/1.0")
+
+    print_request(request, http_connection)
+
+    if request['type'] == 'GET':
+        http_connection.get()
+    elif request['type'] == 'POST':
+        http_connection.post()
+
+    result = http_connection.getResponse()
+
+    if request['verbose']:
+        print(result)
+
+
+def print_request(request, http_connection):
+    output = {}
+
+    output['url'] = request['url']
+    output['headers'] = request['header']
+
+    s = '\n'
+    s += json.dumps(output, indent=4, sort_keys=True)
+    s += '\n'
+
+    print(s)
 
 
 main(sys.argv[1:])
