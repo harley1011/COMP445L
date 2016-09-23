@@ -53,10 +53,17 @@ class TestHttp(unittest.TestCase):
         headers = {}
         headers['Content-Type'] = 'application/x-www-form-urlencoded'
         headers['Content-Length'] = len(body)
+        headers['Accept-Encoding'] = 'identity'
         http_connection.request('POST', '/post', body, headers)
         httpc_response = http_connection.getresponse()
+
+        conn = http.client.HTTPSConnection("www.httpbin.org")
+        conn.request("POST", "/post", body,headers)
+        http_response = conn.getresponse()
+        http_response_body = http_response.read().decode('utf-8')
+        conn.close()
+        self.assertEqual(json.loads(httpc_response.body)['form'], json.loads(http_response_body)['form'])
         self.assertEqual(httpc_response.status_code, 200)
-        print(httpc_response.raw_response.decode('utf-8'))
 
 
 if __name__ == '__main__':
