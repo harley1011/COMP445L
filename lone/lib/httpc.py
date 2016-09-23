@@ -7,7 +7,7 @@ class HttpConnection(object):
     def __init__(self, host, port=None, version='HTTP/1.0'):
         self.host = host
         self.http_version = version
-        self.headers = ''
+        self.headers = {'Host': host}
         self.method = 'GET'
         self.path = ''
         self.body = ''
@@ -53,11 +53,6 @@ class HttpConnection(object):
         return response
 
 
-if __name__ == '__main__':
-    HttpConnection()
-
-
-
 class HttpResponse(object):
     def __init__(self, response):
         self.raw_response = response
@@ -68,7 +63,6 @@ class HttpResponse(object):
         self.status_code = int(status_line[1])
         self.reason_phrase = status_line[2]
         self.headers = {}
-
 
         while len(response) > 0:
             header = response.pop(0)
@@ -82,7 +76,6 @@ class HttpResponse(object):
         self.body = ''
         while len(response) > 0:
             self.body = self.body + response.pop(0)
-
 
 
 class InvalidRequest(Exception):
