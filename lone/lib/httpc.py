@@ -1,13 +1,11 @@
 import socket
-import re
-from urllib.parse import urlparse
 
 
 class HttpConnection(object):
     def __init__(self, host, port=None, version='HTTP/1.0'):
         self.host = host
         self.http_version = version
-        self.headers = {'Host': host}
+        self.headers = ''
         self.method = 'GET'
         self.path = ''
         self.body = ''
@@ -23,9 +21,17 @@ class HttpConnection(object):
         self.method = method
         self.path = path
         self.body = body
-        self.headers = self.format_headers(headers)
+        self.headers = 'Host: ' + self.host + '\r\n'
+        self.headers = self.headers + self.format_headers(headers)
         request_line = self.create_request_line(method, path, self.http_version)
-        request_message = '{}\r\n{}'.format(request_line, self.headers)
+        if len(self.headers) > 0:
+            request_message = '{}\r\n{}'.format(request_line, self.headers)
+        else:
+            request_message = request_line + '\r\n'
+
+        if self.body is not None and len(self.body) > 0:
+            request_message = '{}\r\n{}'.format(request_message, self.body)
+        request_message = request_message + '\r\n'
         response = self.tcp_send(self.host, self.port, request_message)
         http_response = HttpResponse(response)
         self.response = http_response
@@ -42,7 +48,7 @@ class HttpConnection(object):
 
     @staticmethod
     def create_request_line(method_type, url, version):
-        return '{} {} {}\n\n'.format(method_type, url, version)
+        return '{} {} {}'.format(method_type, url, version)
 
     def tcp_send(self, host, port, message):
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

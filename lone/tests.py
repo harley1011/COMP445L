@@ -34,7 +34,6 @@ class TestHttp(unittest.TestCase):
         self.assertEqual(httpc_response_args, http_response_args)
         self.assertEquals(httpc_response.status_code, http_response.status)
 
-
     def test_http_get_method_without_parameters_img(self):
         http_connection = httpc.HttpConnection("www.httpbin.org", 80)
         http_connection.request('GET', '/image/png')
@@ -48,7 +47,16 @@ class TestHttp(unittest.TestCase):
         self.assertEqual(httpc_response.body, http_response_body)
         self.assertEquals(httpc_response.status_code, http_response.status)
 
-        print(httpc_response.body)
+    def test_http_post_method_without_parameters(self):
+        body = "comments=&custemail=harley.1011%40gmail.com&custname=Harley&delivery=&size=small&topping=bacon"
+        http_connection = httpc.HttpConnection("www.httpbin.org", 80)
+        headers = {}
+        headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        headers['Content-Length'] = len(body)
+        http_connection.request('POST', '/post', body, headers)
+        httpc_response = http_connection.getresponse()
+        self.assertEqual(httpc_response.status_code, 200)
+        print(httpc_response.raw_response.decode('utf-8'))
 
 
 if __name__ == '__main__':
