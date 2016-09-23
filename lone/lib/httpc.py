@@ -27,7 +27,8 @@ class HttpConnection(object):
         request_line = self.create_request_line(method, path, self.http_version)
         request_message = '{}\r\n{}'.format(request_line, self.headers)
         response = self.tcp_send(self.host, self.port, request_message)
-        self.response = response.decode('utf-8')
+        http_response = HttpResponse(response.decode('utf-8'))
+        self.response = http_response
 
     @staticmethod
     def format_headers(headers):
@@ -59,13 +60,15 @@ if __name__ == '__main__':
 
 class HttpResponse(object):
     def __init__(self, response):
+        self.raw_response = response
         response = response.split('\r\n')
 
         status_line = response.pop(0).split(' ')
         self.http_version = status_line[0]
-        self.status_code = status_line[1]
+        self.status_code = int(status_line[1])
         self.reason_phrase = status_line[2]
         self.headers = {}
+
 
         while len(response) > 0:
             header = response.pop(0)
@@ -76,14 +79,9 @@ class HttpResponse(object):
             header = header.split(": ", 1)
             self.headers[header[0]] = header[1]
 
-
-
         self.body = ''
-        self.headers = ''
-        self.http_version = ''
-
-
-
+        while len(response) > 0:
+            self.body = self.body + response.pop(0)
 
 
 
