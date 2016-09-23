@@ -43,7 +43,7 @@ class TestHttp(unittest.TestCase):
         conn = http.client.HTTPSConnection("www.httpbin.org")
         conn.request("GET", "/image/png")
         http_response = conn.getresponse()
-        http_response_body = http_response.read().decode("utf-8")
+        http_response_body = http_response.read()
         conn.close()
         self.assertEqual(httpc_response.body, http_response_body)
         self.assertEquals(httpc_response.status_code, http_response.status)

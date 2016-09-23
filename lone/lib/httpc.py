@@ -27,7 +27,7 @@ class HttpConnection(object):
         request_line = self.create_request_line(method, path, self.http_version)
         request_message = '{}\r\n{}'.format(request_line, self.headers)
         response = self.tcp_send(self.host, self.port, request_message)
-        http_response = HttpResponse(response.decode('utf-8'))
+        http_response = HttpResponse(response)
         self.response = http_response
 
     @staticmethod
@@ -48,7 +48,14 @@ class HttpConnection(object):
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_socket.connect((host, port))
         tcp_socket.sendall(message.encode())
-        response = tcp_socket.recv(4096)
+        response = bytearray()
+        while True:
+            data = tcp_socket.recv(4096)
+            if not data:
+                break
+            else:
+                response.extend(data)
+
         tcp_socket.close()
         return response
 
@@ -56,16 +63,18 @@ class HttpConnection(object):
 class HttpResponse(object):
     def __init__(self, response):
         self.raw_response = response
-        response = response.split('\r\n')
+        response = response.split(b'\r\n\r\n')
+        response_header = response[0].decode('utf-8').split('\r\n')
+        response_body = response[1]
 
-        status_line = response.pop(0).split(' ')
+        status_line = response_header.pop(0).split(' ')
         self.http_version = status_line[0]
         self.status_code = int(status_line[1])
         self.reason_phrase = status_line[2]
         self.headers = {}
 
-        while len(response) > 0:
-            header = response.pop(0)
+        while len(response_header) > 0:
+            header = response_header.pop(0)
 
             if header == '':
                 break
@@ -73,9 +82,10 @@ class HttpResponse(object):
             header = header.split(": ", 1)
             self.headers[header[0]] = header[1]
 
-        self.body = ''
-        while len(response) > 0:
-            self.body = self.body + response.pop(0)
+        try:
+            self.body = response_body.decode('utf-8')
+        except:
+            self.body = response_body
 
 
 class InvalidRequest(Exception):
