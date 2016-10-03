@@ -31,6 +31,8 @@ def main(argv):
             'type': None,  # [inline] or [file]
             'value': None
         }
+    else:
+        request['data'] = None
 
     count = len(argv)
 
@@ -144,10 +146,12 @@ def send_http(request):
 
     print_request(request)
 
-    if request['data'] is not None:
-        http_connection.request(request['type'], url_parse.path, request['data']['value'])
-    else:
+    print(request)
+
+    if request['data'] is None:
         http_connection.request(request['type'], url_parse.path)
+    else:
+        http_connection.request(request['type'], url_parse.path, request['data']['value'])
     result = http_connection.getresponse()
 
     if request['verbose']:
