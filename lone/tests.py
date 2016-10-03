@@ -15,6 +15,23 @@ class TestHttp(unittest.TestCase):
 
         self.assertEquals(httpc_response.status_code, 302)
 
+    def test_http_get_method_concordia(self):
+        # Test our library
+        httpc_connection = httpc.HttpConnection("www.concordia.ca", 80)
+        httpc_connection.request('GET', '')
+        httpc_response = httpc_connection.getresponse()
+        httpc_connection.close()
+
+        # Test against pythons official HTTP library
+        conn = http.client.HTTPConnection("www.concordia.ca", 80)
+        conn.request("GET", "")
+        http_response = conn.getresponse()
+        http_response_body = http_response.read().decode("utf-8")
+        conn.close()
+
+        self.assertEqual(httpc_response.body, http_response_body)
+        self.assertEquals(httpc_response.status_code, http_response.status)
+
     def test_http_get_method_without_parameters(self):
         # Test our library
         httpc_connection = httpc.HttpConnection("www.httpbin.org", 80)
