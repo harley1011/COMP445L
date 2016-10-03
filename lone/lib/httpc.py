@@ -34,7 +34,7 @@ class HttpConnection(object):
         if self.body is not None and len(self.body) > 0:
             request_message = '{}\r\n{}'.format(request_message, self.body)
         request_message = '{}\r\n'.format(request_message)
-        response = self.tcp_send(self.host, self.port, request_message)
+        response = self.tcp_send(request_message)
         http_response = HttpResponse(response)
         self.response = http_response
 
@@ -55,7 +55,7 @@ class HttpConnection(object):
     def close(self):
         self.tcp_socket.close()
 
-    def tcp_send(self, host, port, message):
+    def tcp_send(self, message):
         self.tcp_socket.sendall(message.encode())
         response = bytearray()
         while True:
