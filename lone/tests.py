@@ -7,6 +7,14 @@ import json
 # Run using the command python3 -m unittest tests
 class TestHttp(unittest.TestCase):
 
+    def test_http_get_method_google(self):
+        httpc_connection = httpc.HttpConnection("www.google.com", 80)
+        httpc_connection.request('GET', '')
+        httpc_response = httpc_connection.getresponse()
+        httpc_connection.close()
+
+        self.assertEquals(httpc_response.status_code, 302)
+
     def test_http_get_method_without_parameters(self):
         # Test our library
         httpc_connection = httpc.HttpConnection("www.httpbin.org", 80)

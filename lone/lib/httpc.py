@@ -20,6 +20,8 @@ class HttpConnection(object):
     def request(self, method, path, body=None, headers={}):
         if method != 'GET' and method != 'POST':
             raise InvalidRequest('{} is not a supported method type'.format(method))
+        if len(path) == 0:
+            path = '/'
         self.method = method
         self.path = path
         self.body = body
