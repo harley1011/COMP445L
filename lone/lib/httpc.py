@@ -72,8 +72,8 @@ class HttpConnection(object):
 class HttpResponse(object):
     def __init__(self, response):
         self.raw_response = response
-        response = response.split(b'\r\n\r\n')
-        response_header = response[0].decode('utf-8').split('\r\n')
+        response = response.split(b'\r\n\r\n', 1)
+        response_header = response[0].decode('utf-8').split('\r\n', 1)
         response_body = response[1]
 
         status_line = response_header.pop(0).split(' ')
