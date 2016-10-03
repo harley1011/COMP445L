@@ -127,7 +127,17 @@ def get_file_data(request, arg):
 
 
 def send_http(request):
+    print(request)
+
+    if not request['url'].startswith('http'):
+        request['url'] = '%s%s' % ('http://', request['url'])
+
+    print(request)
+
     url_parse = urlparse(request['url'])
+
+    print('test')
+    print(url_parse)
 
     http_connection = httpc.HttpConnection(url_parse.netloc, 80)
 
@@ -137,7 +147,7 @@ def send_http(request):
     result = http_connection.getresponse()
 
     if request['verbose']:
-        print(result)
+        print(result.raw_response)
 
 
 def print_request(request):
