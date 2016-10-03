@@ -19,7 +19,7 @@ def main(argv):
 
     # parse options
     try:
-        opts, args = getopt.getopt(argv, "vh:d:f:")
+        opts, args = getopt.getopt(argv, "vh:d:f:", ['d=', 'f='])
     except getopt.GetoptError:
         give_help()
 
@@ -34,6 +34,8 @@ def main(argv):
 
     count = len(argv)
 
+    print(opts)
+
     # cycle through options
     for opt, arg in opts:
         # verbose request
@@ -45,11 +47,11 @@ def main(argv):
             get_header_data(request, arg)
             count -= 2
         # inline data (POST request only)
-        elif opt == '-d':
+        elif opt == '-d' or opt == '--d':
             get_inline_data(request, arg)
             count -= 2
         # file data (POST request only)
-        elif opt == '-f':
+        elif opt == '-f' or opt == '--f':
             get_file_data(request, arg)
             count -= 2
 
@@ -127,17 +129,30 @@ def get_file_data(request, arg):
 
 
 def send_http(request):
+    print(request)
+
+    if not request['url'].startswith('http'):
+        request['url'] = '%s%s' % ('http://', request['url'])
+
     url_parse = urlparse(request['url'])
 
     http_connection = httpc.HttpConnection(url_parse.netloc, 80)
 
     print_request(request)
 
-    http_connection.request(request['type'], url_parse.path)
+    if request['data'] is not None:
+        http_connection.request(request['type'], url_parse.path, request['data']['value'])
+    else:
+        http_connection.request(request['type'], url_parse.path)
     result = http_connection.getresponse()
 
     if request['verbose']:
-        print(result)
+        print(result.raw_response)
+
+
+def get_body(data):
+    if data['type'] == 'inline':
+        return data['value']
 
 
 def print_request(request):
