@@ -125,7 +125,11 @@ def get_file_data(request, arg):
         print('Cannot use options -d with a GET request')
         sys.exit()
     request['data']['type'] = 'file'
-    request['data']['value'] = arg
+
+    f = open(arg, 'r')
+    body = f.read()
+
+    request['data']['value'] = body
 
 
 def send_http(request):
@@ -148,11 +152,6 @@ def send_http(request):
 
     if request['verbose']:
         print(result.raw_response)
-
-
-def get_body(data):
-    if data['type'] == 'inline':
-        return data['value']
 
 
 def print_request(request):
