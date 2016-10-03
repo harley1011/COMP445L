@@ -17,7 +17,7 @@ def run_server(host, port):
 
 
 def handle_client(conn, addr):
-    print 'New client from', addr
+    print('New client from', addr)
     try:
         while True:
             data = conn.recv(1024)
