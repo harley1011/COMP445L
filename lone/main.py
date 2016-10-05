@@ -142,21 +142,17 @@ def send_http(request):
 
     url_parse = urlparse(request['url'])
 
-    http_connection = httpc.HttpConnection(url_parse.netloc, 80)
+    http_connection = httpc.HttpConnection(url_parse.netloc, 80, output=request['verbose'])
 
     print_request(request)
 
     #print(request)
-
+    request['header']['Agent'] = 'http-client'
     if request['data'] is None:
-        http_connection.request(request['type'], url_parse.path)
+        http_connection.request(request['type'], url_parse.path, headers=request['header'])
     else:
-        http_connection.request(request['type'], url_parse.path, request['data']['value'])
+        http_connection.request(request['type'], url_parse.path, request['data']['value'], headers=request['header'])
     result = http_connection.getresponse()
-
-    if request['verbose']:
-        print(http_connection.request_message + '\r\n')
-        print(result.response_details + '\r\n')
 
     print(result.body)
 

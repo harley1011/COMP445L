@@ -9,7 +9,7 @@ class TestHttp(unittest.TestCase):
 
     def test_http_get_method_google(self):
         httpc_connection = httpc.HttpConnection("www.google.com", 80)
-        httpc_connection.request('GET', '')
+        httpc_connection.request('GET', '', agent='UnitTests')
         httpc_response = httpc_connection.getresponse()
         httpc_connection.close()
 
@@ -17,13 +17,13 @@ class TestHttp(unittest.TestCase):
 
     def test_http_get_method_concordia(self):
         # Test our library
-        httpc_connection = httpc.HttpConnection("www.concordia.ca", 80)
+        httpc_connection = httpc.HttpConnection("www.yayonay.me", 80)
         httpc_connection.request('GET', '')
         httpc_response = httpc_connection.getresponse()
         httpc_connection.close()
 
         # Test against pythons official HTTP library
-        conn = http.client.HTTPConnection("www.concordia.ca", 80)
+        conn = http.client.HTTPConnection("www.yayonay.me", 80)
         conn.request("GET", "")
         http_response = conn.getresponse()
         http_response_body = http_response.read().decode("utf-8")
@@ -35,7 +35,7 @@ class TestHttp(unittest.TestCase):
     def test_http_get_method_without_parameters(self):
         # Test our library
         httpc_connection = httpc.HttpConnection("www.httpbin.org", 80)
-        httpc_connection.request('GET', '/status/418')
+        httpc_connection.request('GET', '/status/418', agent='UnitTests')
         httpc_response = httpc_connection.getresponse()
         httpc_connection.close()
 

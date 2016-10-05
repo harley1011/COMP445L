@@ -2,7 +2,7 @@ import socket
 
 
 class HttpConnection(object):
-    def __init__(self, host, port=None, version='HTTP/1.0'):
+    def __init__(self, host, port=None, version='HTTP/1.0', output=True):
         self.host = host
         self.http_version = version
         self.headers = ''
@@ -11,6 +11,7 @@ class HttpConnection(object):
         self.body = ''
         self.response = ''
         self.request_message = ''
+        self.output = output
         if port is not None:
             self.port = port
         else:
@@ -18,7 +19,7 @@ class HttpConnection(object):
         self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcp_socket.connect((host, port))
 
-    def request(self, method, path, body=None, headers={}):
+    def request(self, method, path, body=None, headers={}, agent=None):
         if method != 'GET' and method != 'POST':
             raise InvalidRequest('{} is not a supported method type'.format(method))
         if len(path) == 0:
@@ -26,19 +27,29 @@ class HttpConnection(object):
         self.method = method
         self.path = path
         self.body = body
-        self.headers = 'Host: {}{}'.format(self.host, '\r\n')
+        self.headers = 'Host: {}\r\n'.format(self.host)
+        if agent is not None:
+            self.headers = '{}Agent: {}\r\n'.format(self.headers,agent)
+
         self.headers = self.headers + self.format_headers(headers)
         request_line = self.create_request_line(method, path, self.http_version)
         self.request_message = '{}\r\n{}'.format(request_line, self.headers)
 
-
-        if self.body is not None and len(self.body) > 0:
-            self.request_message = '{}\r\n{}'.format(self.request_message, self.body)
+        if body is not None and len(body) > 0:
+            self.request_message = '{}\r\n{}'.format(self.request_message, body)
 
         self.request_message = '{}\r\n'.format(self.request_message)
         response = self.tcp_send(self.request_message)
         http_response = HttpResponse(response)
         self.response = http_response
+
+        if self.output:
+            lines = self.request_message.split('\r\n')
+            for line in lines:
+                print('> {}\r\n'.format(line), end="")
+            lines = http_response.response_details.split('\r\n')
+            for line in lines:
+                print('< {}\r\n'.format(line), end="")
 
     @staticmethod
     def format_headers(headers):
@@ -49,9 +60,6 @@ class HttpConnection(object):
 
     def getresponse(self):
         return self.response
-
-    def getrequestmessage(self):
-        return self.request_message
 
     @staticmethod
     def create_request_line(method_type, url, version):
