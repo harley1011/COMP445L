@@ -36,7 +36,7 @@ def main(argv):
 
     count = len(argv)
 
-    print(opts)
+    #print(opts)
 
     # cycle through options
     for opt, arg in opts:
@@ -135,7 +135,7 @@ def get_file_data(request, arg):
 
 
 def send_http(request):
-    print(request)
+    #print(request)
 
     if not request['url'].startswith('http'):
         request['url'] = '%s%s' % ('http://', request['url'])
@@ -146,7 +146,7 @@ def send_http(request):
 
     print_request(request)
 
-    print(request)
+    #print(request)
 
     if request['data'] is None:
         http_connection.request(request['type'], url_parse.path)
@@ -155,7 +155,10 @@ def send_http(request):
     result = http_connection.getresponse()
 
     if request['verbose']:
-        print(result.raw_response)
+        print(http_connection.request_message + '\r\n')
+        print(result.response_details + '\r\n')
+
+    print(result.body)
 
 
 def print_request(request):
@@ -168,7 +171,7 @@ def print_request(request):
     s += json.dumps(output, indent=4, sort_keys=True)
     s += '\n'
 
-    print(s)
+    #print(s)
 
 
 main(sys.argv[1:])

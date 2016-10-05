@@ -10,6 +10,7 @@ class HttpConnection(object):
         self.path = ''
         self.body = ''
         self.response = ''
+        self.request_message = ''
         if port is not None:
             self.port = port
         else:
@@ -25,18 +26,17 @@ class HttpConnection(object):
         self.method = method
         self.path = path
         self.body = body
-        self.headers = 'Host: ' + self.host + '\r\n'
+        self.headers = 'Host: {}{}'.format(self.host, '\r\n')
         self.headers = self.headers + self.format_headers(headers)
         request_line = self.create_request_line(method, path, self.http_version)
-        if len(self.headers) > 0:
-            request_message = '{}\r\n{}'.format(request_line, self.headers)
-        else:
-            request_message = request_line + '\r\n'
+        self.request_message = '{}\r\n{}'.format(request_line, self.headers)
+
 
         if self.body is not None and len(self.body) > 0:
-            request_message = '{}\r\n{}'.format(request_message, self.body)
-        request_message = '{}\r\n'.format(request_message)
-        response = self.tcp_send(request_message)
+            self.request_message = '{}\r\n{}'.format(self.request_message, self.body)
+
+        self.request_message = '{}\r\n'.format(self.request_message)
+        response = self.tcp_send(self.request_message)
         http_response = HttpResponse(response)
         self.response = http_response
 
@@ -49,6 +49,9 @@ class HttpConnection(object):
 
     def getresponse(self):
         return self.response
+
+    def getrequestmessage(self):
+        return self.request_message
 
     @staticmethod
     def create_request_line(method_type, url, version):
@@ -73,6 +76,7 @@ class HttpResponse(object):
     def __init__(self, response):
         self.raw_response = response
         response = response.split(b'\r\n\r\n', 1)
+        self.response_details = response[0].decode('utf-8')
         response_header = response[0].decode('utf-8').split('\r\n', 1)
         response_body = response[1]
 
