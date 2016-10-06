@@ -8,7 +8,6 @@ from urllib.parse import urlparse
 
 
 def main(argv):
-
     # create request object
     request = {}
 

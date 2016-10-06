@@ -24,12 +24,15 @@ class HttpConnection(object):
             raise InvalidRequest('{} is not a supported method type'.format(method))
         if len(path) == 0:
             path = '/'
+        if method == 'POST':
+            headers['Content-Length'] = len(body)
+
         self.method = method
         self.path = path
         self.body = body
         self.headers = 'Host: {}\r\n'.format(self.host)
         if agent is not None:
-            self.headers = '{}Agent: {}\r\n'.format(self.headers,agent)
+            self.headers = '{}Agent: {}\r\n'.format(self.headers, agent)
 
         self.headers = self.headers + self.format_headers(headers)
         request_line = self.create_request_line(method, path, self.http_version)
@@ -46,10 +49,11 @@ class HttpConnection(object):
         if self.output:
             lines = self.request_message.split('\r\n')
             for line in lines:
-                print('> {}\r\n'.format(line), end="")
+                print('> {}\n'.format(line), end="")
             lines = http_response.response_details.split('\r\n')
             for line in lines:
-                print('< {}\r\n'.format(line), end="")
+                print('< {}\n'.format(line), end="")
+            print('<')
 
     @staticmethod
     def format_headers(headers):
