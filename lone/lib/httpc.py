@@ -2,7 +2,7 @@ import socket
 
 
 class HttpConnection(object):
-    def __init__(self, host, port=None, version='HTTP/1.0', output=True):
+    def __init__(self, host, port=None, version='HTTP/1.0', output=True, redirect=True):
         self.host = host
         self.http_version = version
         self.headers = ''
@@ -12,6 +12,7 @@ class HttpConnection(object):
         self.response = ''
         self.request_message = ''
         self.output = output
+        self.redirect = redirect
         if port is not None:
             self.port = port
         else:
@@ -93,6 +94,7 @@ class HttpResponse(object):
         response_body = response[1]
 
         status_line = response_header.pop(0).split(' ')
+        response_header = response_header[0].split('\r\n')
         self.http_version = status_line[0]
         self.status_code = int(status_line[1])
         self.reason_phrase = status_line[2]
@@ -108,7 +110,10 @@ class HttpResponse(object):
             self.headers[header[0]] = header[1]
 
         try:
-            self.body = response_body.decode('utf-8')
+            decode_type = 'utf-8'
+            if 'Content-Type' in self.headers and 'charset=' in self.headers['Content-Type']:
+                decode_type = self.headers['Content-Type'].split('charset=')[1]
+            self.body = response_body.decode(decode_type)
         except:
             self.body = response_body
 

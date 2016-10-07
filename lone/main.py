@@ -18,11 +18,12 @@ def main(argv):
 
     # parse options
     try:
-        opts, args = getopt.getopt(argv, "vh:d:f:", ['d=', 'f='])
+        opts, args = getopt.getopt(argv, "vrh:d:f:", ['d=', 'f='])
     except getopt.GetoptError:
         give_help()
 
     request['verbose'] = False
+    request['redirect'] = False
     request['header'] = {}
 
     if request['type'] == 'POST':
@@ -55,6 +56,9 @@ def main(argv):
         elif opt == '-f' or opt == '--f':
             get_file_data(request, arg)
             count -= 2
+        elif opt == '-r' or opt == '-r':
+            request['redirect'] = True
+            count -= 1
 
     # check if a URL is provided
     if count != 1:
@@ -134,7 +138,6 @@ def get_file_data(request, arg):
 
 
 def send_http(request):
-    #print(request)
 
     if not request['url'].startswith('http'):
         request['url'] = '%s%s' % ('http://', request['url'])
@@ -145,7 +148,6 @@ def send_http(request):
 
     print_request(request)
 
-    #print(request)
     request['header']['Agent'] = 'http-client'
     if request['data'] is None:
         http_connection.request(request['type'], url_parse.path, headers=request['header'])
@@ -153,7 +155,18 @@ def send_http(request):
         http_connection.request(request['type'], url_parse.path, request['data']['value'], headers=request['header'])
     result = http_connection.getresponse()
 
-    print(result.body)
+    if request['redirect'] and result.status_code == 302:
+        if 'Location' not in result.headers:
+            print('No redirect location found in response header')
+            return
+
+        location = result.headers['Location']
+        if request['verbose']:
+            print('Redirect enabled, redirecting to {0}'.format(location))
+        request['url'] = location
+        send_http(request)
+    else:
+        print(result.body)
 
 
 def print_request(request):
