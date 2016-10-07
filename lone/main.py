@@ -36,8 +36,6 @@ def main(argv):
 
     count = len(argv)
 
-    #print(opts)
-
     # cycle through options
     for opt, arg in opts:
         # verbose request
@@ -138,22 +136,19 @@ def get_file_data(request, arg):
 
 
 def send_http(request):
-
     if not request['url'].startswith('http'):
         request['url'] = '%s%s' % ('http://', request['url'])
 
     url_parse = urlparse(request['url'])
-    url = url_parse.netloc
-
     http_connection = httpc.HttpConnection(url_parse.netloc, 80, output=request['verbose'])
-
-    print_request(request)
 
     path = url_parse.path
     if request['type'] == 'GET':
         if len(url_parse.query) > 0:
             path = '{}?{}'.format(url_parse.path, url_parse.query)
+
     request['header']['Agent'] = 'http-client'
+
     if request['data'] is None:
         http_connection.request(request['type'], path, headers=request['header'])
     else:
@@ -163,6 +158,7 @@ def send_http(request):
     if request['redirect'] and result.status_code == 302:
         if 'Location' not in result.headers:
             print('No redirect location found in response header')
+            print(result.body)
             return
 
         location = result.headers['Location']
@@ -176,7 +172,6 @@ def send_http(request):
 
 def print_request(request):
     output = {}
-
     output['url'] = request['url']
     output['headers'] = request['header']
 
@@ -184,7 +179,7 @@ def print_request(request):
     s += json.dumps(output, indent=4, sort_keys=True)
     s += '\n'
 
-    #print(s)
+    print(s)
 
 
 main(sys.argv[1:])
