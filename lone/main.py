@@ -143,16 +143,21 @@ def send_http(request):
         request['url'] = '%s%s' % ('http://', request['url'])
 
     url_parse = urlparse(request['url'])
+    url = url_parse.netloc
 
     http_connection = httpc.HttpConnection(url_parse.netloc, 80, output=request['verbose'])
 
     print_request(request)
 
+    path = url_parse.path
+    if request['type'] == 'GET':
+        if len(url_parse.query) > 0:
+            path = '{}?{}'.format(url_parse.path, url_parse.query)
     request['header']['Agent'] = 'http-client'
     if request['data'] is None:
-        http_connection.request(request['type'], url_parse.path, headers=request['header'])
+        http_connection.request(request['type'], path, headers=request['header'])
     else:
-        http_connection.request(request['type'], url_parse.path, request['data']['value'], headers=request['header'])
+        http_connection.request(request['type'], path, request['data']['value'], headers=request['header'])
     result = http_connection.getresponse()
 
     if request['redirect'] and result.status_code == 302:
