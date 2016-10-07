@@ -1,8 +1,11 @@
-POSTS
-
+POST with inline form
 main.py post -h Content-Type:application/x-www-form-urlencoded -h Accept-Encoding:identity --d "comments=&custemail=harley.1011%40gmail.com&custname=Harley&delivery=&size=small&topping=bacon" www.httpbin.org/post
+
+POST with inline JSON
 main.py post -h Content-Type:application/json --d '{"Assignment": 1}' http://httpbin.org/post
 
+POST with inline JSON
+main.py post -h Content-Type:application/json --f body.txt http://httpbin.org/post
 
 GET with query parameters
 main.py get -v 'http://httpbin.org/get?course=networking&assignment=1'
