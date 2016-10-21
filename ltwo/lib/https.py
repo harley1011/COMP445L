@@ -3,21 +3,27 @@ import threading
 
 
 class HTTPServer(object):
-    def run_server(self, host, port):
+    def __init__(self):
+        self.verbose = False
+
+    def run_server(self, host, port, verbose):
+        self.verbose = verbose
         listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             listener.bind((host, port))
             listener.listen(5)
-            print('Echo server is listening at', port)
+            if self.verbose:
+                print('Server is listening on port ', port)
             while True:
                 conn, addr = listener.accept()
                 threading.Thread(target=self.handle_client, args=(conn, addr)).start()
         finally:
             listener.close()
 
-    @staticmethod
-    def handle_client(conn, addr):
-        print('New client from', addr)
+    def handle_client(self, conn, addr):
+        if self.verbose:
+            print('New client from ', addr)
+
         request = bytearray()
         try:
             while True:
@@ -35,10 +41,15 @@ class HTTPServer(object):
                         break
                 else:
                     request.extend(data)
-
-        finally:
-            conn.close()
             return http_request
+        except:
+            conn.close()
+            return None
+
+    @staticmethod
+    def handle_response_to_client(http_request):
+        http_request.connection.sendall('response here')
+        http_request.connection.close()
 
 
 class HttpRequest(object):
@@ -48,12 +59,13 @@ class HttpRequest(object):
         self.http_version = "HTTP/1.0"
         self.headers = {}
         self.message_body = ''
+        self.connection = None
 
-    def parse_request(self, request):
+    def parse_request(self, request, connection):
         # extract stuff from response
         # see http response for how we parsed the response
         self.method = 'GET'
-
+        self.connection = connection
         return False
 
     def add_content(self, request):
