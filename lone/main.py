@@ -140,7 +140,7 @@ def send_http(request):
         request['url'] = '%s%s' % ('http://', request['url'])
 
     url_parse = urlparse(request['url'])
-    http_connection = httpc.HttpConnection(url_parse.netloc, 80, output=request['verbose'])
+    http_connection = httpc.HttpConnection(url_parse.netloc, 8080, output=request['verbose'])
 
     path = url_parse.path
     if request['type'] == 'GET':

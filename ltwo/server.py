@@ -14,7 +14,7 @@ def main(argv):
         give_help()
 
     request['verbose'] = False
-    request['port'] = 8000
+    request['port'] = 8080
     request['directory'] = ''
 
     # cycle through options
@@ -37,7 +37,7 @@ def give_help():
 
 def start_server(request):
     http_server = https.HTTPServer()
-    http_server.run_server('', request['port'], request['verbose'])
+    http_server.run_server('127.0.0.1', request['port'], request['verbose'])
 
 
 
