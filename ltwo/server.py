@@ -9,7 +9,7 @@ def main(argv):
 
     # parse options
     try:
-        opts, args = getopt.getopt(argv, "v:p:d:", ['v=', 'p=', 'd='])
+        opts, args = getopt.getopt(argv, "vp:d:", ['v=', 'p=', 'd='])
     except getopt.GetoptError:
         give_help()
 
