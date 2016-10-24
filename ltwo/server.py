@@ -1,5 +1,7 @@
 import sys
 import getopt
+import queue
+import threading
 import lib.detailedusage as detailedusage
 import lib.https as https
 
@@ -36,9 +38,21 @@ def give_help():
 
 
 def start_server(request):
-    http_server = https.HTTPServer()
+    request_queue = queue.Queue()
+    threading.Thread(target=handle_requests, args=(request_queue, ), daemon=True).start()
+
+    http_server = https.HTTPServer(request_queue)
     http_server.run_server('127.0.0.1', request['port'], request['verbose'])
 
+
+def handle_requests(request_queue):
+    while True:
+        request = request_queue.get()
+        print('Method:', request.method)
+        print('Path:', request.path)
+        print('HTTP Version:', request.http_version)
+        print('Headers:', request.headers)
+        print('Body:', request.message_body)
 
 
 main(sys.argv[1:])

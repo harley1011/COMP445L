@@ -3,8 +3,9 @@ import threading
 
 
 class HTTPServer(object):
-    def __init__(self):
+    def __init__(self, queue):
         self.verbose = False
+        self.queue = queue
 
     def run_server(self, host, port, verbose):
         self.verbose = verbose
@@ -16,11 +17,11 @@ class HTTPServer(object):
                 print('Server is listening on port ', port)
             while True:
                 conn, addr = listener.accept()
-                threading.Thread(target=self.handle_client, args=(conn, addr)).start()
+                threading.Thread(target=self.handle_client, args=(conn, addr, self.queue)).start()
         finally:
             listener.close()
 
-    def handle_client(self, conn, addr):
+    def handle_client(self, conn, addr, queue):
         if self.verbose:
             print('New client from ', addr)
 
@@ -45,10 +46,9 @@ class HTTPServer(object):
                     more_content = http_request.add_content(request)
                     if not more_content:
                         break
-            return http_request
+            queue.put(http_request)
         except:
             conn.close()
-            return None
 
     @staticmethod
     def handle_response_to_client(http_request):
