@@ -9,6 +9,9 @@ import lib.https as https
 def main(argv):
     request = {}
 
+    if argv[0].lower() == 'help':
+        give_help()
+
     # parse options
     try:
         opts, args = getopt.getopt(argv, "vp:d:", ['v=', 'p=', 'd='])
