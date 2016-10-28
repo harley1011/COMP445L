@@ -71,7 +71,7 @@ def handle_request(request, directory):
     else:
         response = handle_error(request, directory)
 
-    print(response)
+    print('\r\n' + response)
 
 
 def directory_list(request, directory):
@@ -93,17 +93,17 @@ def directory_list(request, directory):
 
 def file_content(request, directory):
     if not valid_path(request.path):
-        return handle_error(request, directory)
+        return handle_file_error(request, directory)
 
     d = directory
     if d.endswith('/'):
         d = d[:-1]
 
     try:
-        with open(d + request.path, 'r') as content_file:
+        with open(d + request.path, 'rb') as content_file:
             content = content_file.read()
     except IOError:
-        return handle_error(request, directory)
+        return handle_file_error(request, directory)
 
     # make body
     response_body = content
@@ -132,6 +132,17 @@ def handle_error(request, directory):
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '400', 'Bad Request')
+    content_type = 'Content-Type: {}'.format('text/plain')
+
+    return create_response(type_line, content_type, response_body)
+
+
+def handle_file_error(request, directory):
+    # make body
+    response_body = 'Not A File'
+
+    # make header
+    type_line = '{} {} {}\r\n'.format(request.http_version, '404', 'Not Found')
     content_type = 'Content-Type: {}'.format('text/plain')
 
     return create_response(type_line, content_type, response_body)
