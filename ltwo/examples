@@ -2,7 +2,12 @@ GET Directory List Example
 server  -->  python3 ltwo/server.py -v
 client  -->  python3 lone/main.py get 127.0.0.1
 
-GET File Example
+GET File Examples
+server  -->  python3 ltwo/server.py -v
+client  -->  python3 lone/main.py get 127.0.0.1/REAMDE.md
+
+server  -->  python3 ltwo/server.py -v -d ./ltwo/lib
+client  -->  python3 lone/main.py get 127.0.0.1/detailedusage.py
 
 POST Example
 server  -->  python3 ltwo/server.py -v

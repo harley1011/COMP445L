@@ -1,4 +1,5 @@
 import sys
+import re
 import getopt
 import queue
 import threading
@@ -73,6 +74,7 @@ def handle_request(request, directory):
 
 
 def directory_list(request, directory):
+    # get directory list
     files = []
     for file in listdir(directory):
         if isfile(join(directory, file)):
@@ -89,8 +91,24 @@ def directory_list(request, directory):
 
 
 def file_content(request, directory):
+    if not valid_path(request.path):
+        return handle_error(request, directory)
+
+    d = directory
+    if d.endswith('/'):
+        d = d[:-1]
+
+    print('DIRECTORY: ', d)
+    print('FILE: ', d + request.path)
+
+    try:
+        with open(d + request.path, 'r') as content_file:
+            content = content_file.read()
+    except IOError:
+        return handle_error(request, directory)
+
     # make body
-    response_body = directory
+    response_body = content
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
@@ -112,7 +130,7 @@ def file_set_content(request, directory):
 
 def handle_error(request, directory):
     # make body
-    response_body = directory
+    response_body = 'Not A File'
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '400', 'Bad Request')
@@ -127,7 +145,6 @@ def create_response(type_line, content_type, response_body):
     now = datetime.datetime.now()
     response_header = '{}Date: {}\r\n'.format(response_header, str(now))
 
-    # response_header = '{}Content-Type: {}\r\n'.format(response_header, 'text/plain')
     response_header = '{}{}\r\n'.format(response_header, content_type)
     response_header = '{}Content-Length: {}\r\n'.format(response_header, len(response_body))
     response_header = '{}Connection: {}\r\n'.format(response_header, 'Close')
@@ -138,6 +155,10 @@ def create_response(type_line, content_type, response_body):
     response = '{}\r\n{}'.format(response_header, response_body)
 
     return response
+
+
+def valid_path(path):
+    return re.match(r'^/[^\./]+\.\w+$', path, re.M|re.I) is not None
 
 
 main(sys.argv[1:])
