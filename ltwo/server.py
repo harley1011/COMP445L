@@ -3,6 +3,8 @@ import getopt
 import queue
 import threading
 import datetime
+from os import listdir
+from os.path import isfile, join
 import lib.detailedusage as detailedusage
 import lib.https as https
 
@@ -21,7 +23,7 @@ def main(argv):
 
     request['verbose'] = False
     request['port'] = 8080
-    request['directory'] = ''
+    request['directory'] = './'
 
     # cycle through options
     for opt, arg in opts:
@@ -43,84 +45,83 @@ def give_help():
 
 def start_server(request):
     request_queue = queue.Queue()
-    threading.Thread(target=handle_requests, args=(request_queue, ), daemon=True).start()
+    threading.Thread(target=handle_requests, args=(request_queue, request['directory']), daemon=True).start()
 
     http_server = https.HTTPServer(request_queue)
     http_server.run_server('127.0.0.1', request['port'], request['verbose'])
 
 
-def handle_requests(request_queue):
+def handle_requests(request_queue, directory):
     while True:
         request = request_queue.get()
 
-        handle_request(request)
+        handle_request(request, directory)
 
 
-def handle_request(request):
-    print('Method:', request.method)
-    print('Path:', request.path)
-    print('HTTP Version:', request.http_version)
-    print('Headers:', request.headers)
-    print('Body:', request.message_body)
-
+def handle_request(request, directory):
     response = None
     if request.method == 'GET' and request.path == '/':
-        response = directory_list(request)
+        response = directory_list(request, directory)
     elif request.method == 'GET':
-        response = file_content(request)
+        response = file_content(request, directory)
     elif request.method == 'POST':
-        response = file_set_content(request)
+        response = file_set_content(request, directory)
     else:
-        response = handle_error(request)
+        response = handle_error(request, directory)
 
     print(response)
 
 
-def directory_list(request):
+def directory_list(request, directory):
+    files = []
+    for file in listdir(directory):
+        if isfile(join(directory, file)):
+            files.append(file)
+
     # make body
-    response_body = ''
+    response_body = str(files)
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
     content_type = 'Content-Type: {}'.format('application/json')
 
-    return create_header(type_line, content_type, response_body)
+    return create_response(type_line, content_type, response_body)
 
 
-def file_content(request):
+def file_content(request, directory):
     # make body
-    response_body = ''
+    response_body = directory
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
     content_type = 'Content-Type: {}'.format('text/plain')
 
-    return create_header(type_line, content_type, response_body)
+    return create_response(type_line, content_type, response_body)
 
 
-def file_set_content(request):
+def file_set_content(request, directory):
     # make body
-    response_body = ''
+    response_body = directory
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
     content_type = 'Content-Type: {}'.format('text/plain')
 
-    return create_header(type_line, content_type, response_body)
+    return create_response(type_line, content_type, response_body)
 
 
-def handle_error(request):
+def handle_error(request, directory):
     # make body
-    response_body = ''
+    response_body = directory
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '400', 'Bad Request')
     content_type = 'Content-Type: {}'.format('text/plain')
 
-    return create_header(type_line, content_type, response_body)
+    return create_response(type_line, content_type, response_body)
 
 
-def create_header(type_line, content_type, response_body):
+def create_response(type_line, content_type, response_body):
     response_header = '{}Server: {}\r\n'.format(type_line, 'COMP 445 HTTP Server')
 
     now = datetime.datetime.now()
