@@ -110,7 +110,7 @@ def file_content(request, directory):
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
-    content_type = 'Content-Type: {}'.format('text/plain')
+    content_type = 'Content-Type: {}'.format(get_file_type(request.path))
 
     return create_response(type_line, content_type, response_body)
 
@@ -168,6 +168,29 @@ def create_response(type_line, content_type, response_body):
 
 def valid_path(path):
     return re.match(r'^/[^\./]+\.\w+$', path, re.M|re.I) is not None
+
+
+def get_file_type(path):
+    match_object = re.match(r'^/[^\./]+\.(\w+)$', path, re.M|re.I)
+
+    type = match_object.group(1)
+
+    if type == 'json':
+        return 'application/json'
+    elif type == 'pdf':
+        return 'application/pdf'
+    elif type == 'html':
+        return 'text/html'
+    elif type == 'png':
+        return 'image/png'
+    elif type == 'jpg' or type == 'jpeg':
+        return 'image/jpg'
+    elif type == 'bmp':
+        return 'image/bmp'
+    elif type == 'gif':
+        return 'image/gif'
+    else:
+        return 'text/plain'
 
 
 main(sys.argv[1:])
