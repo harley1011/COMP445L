@@ -71,8 +71,8 @@ def handle_request(request, directory):
     else:
         response = handle_error(request, directory)
 
-    request.reply_to_request(response)
-    print('\r\n' + response)
+    request.reply_to_request(response.response_header, response.response_body)
+    print('\r\n' + response.response_header)
 
 
 def directory_list(request, directory):
@@ -162,9 +162,8 @@ def create_response(type_line, content_type, response_body):
     response_header = '{}Access-Control-Allow-Credentials: {}\r\n'.format(response_header, 'true')
 
     # make response
-    response = '{}\r\n{}'.format(response_header, response_body)
-
-    return response
+    response_header = '{}\r\n'.format(response_header)
+    return https.HttpResponse(response_header, response_body)
 
 
 def valid_path(path):
@@ -192,6 +191,8 @@ def get_file_type(path):
         return 'image/gif'
     else:
         return 'application/octet-stream'
+
+
 
 
 main(sys.argv[1:])
