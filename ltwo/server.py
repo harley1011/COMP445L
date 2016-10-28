@@ -71,6 +71,7 @@ def handle_request(request, directory):
     else:
         response = handle_error(request, directory)
 
+    request.reply_to_request(response)
     print('\r\n' + response)
 
 

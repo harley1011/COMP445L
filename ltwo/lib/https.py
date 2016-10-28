@@ -119,3 +119,9 @@ class HttpRequest(object):
             self.message_body += body
 
         return self.headers['Content-Length'] == len(self.message_body)
+
+    def reply_to_request(self, response):
+        self.connection.sendall(response.encode())
+        self.connection.shutdown(socket.SHUT_RDWR)
+        self.connection.close()
+
