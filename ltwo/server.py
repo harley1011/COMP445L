@@ -190,7 +190,7 @@ def get_file_type(path):
     elif type == 'gif':
         return 'image/gif'
     else:
-        return 'text/plain'
+        return 'application/octet-stream'
 
 
 main(sys.argv[1:])
