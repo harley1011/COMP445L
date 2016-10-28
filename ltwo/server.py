@@ -2,6 +2,7 @@ import sys
 import re
 import getopt
 import queue
+import json
 import threading
 import datetime
 from os import listdir
@@ -81,7 +82,7 @@ def directory_list(request, directory):
             files.append(file)
 
     # make body
-    response_body = str(files)
+    response_body = json.dumps(files)
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
@@ -97,9 +98,6 @@ def file_content(request, directory):
     d = directory
     if d.endswith('/'):
         d = d[:-1]
-
-    print('DIRECTORY: ', d)
-    print('FILE: ', d + request.path)
 
     try:
         with open(d + request.path, 'r') as content_file:
