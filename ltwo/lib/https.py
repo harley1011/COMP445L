@@ -122,7 +122,10 @@ class HttpRequest(object):
 
     def reply_to_request(self, header, body):
         self.connection.sendall(header.encode())
-        self.connection.sendall(body)
+        try:
+            self.connection.sendall(body.encode())
+        except:
+            self.connection.sendall(body)
         self.connection.shutdown(socket.SHUT_RDWR)
         self.connection.close()
 
