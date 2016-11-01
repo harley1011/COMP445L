@@ -117,8 +117,22 @@ def file_content(request, directory):
 
 
 def file_set_content(request, directory):
+    if not valid_path(request.path):
+        return handle_file_error(request, directory)
+
+    d = directory
+    if d.endswith('/'):
+        d = d[:-1]
+
+    try:
+        file = open(d + request.path, 'wb')
+    except IOError:
+        return handle_file_error(request, directory)
+
+    file.write(request.message_body.encode())
+
     # make body
-    response_body = directory
+    response_body = 'SUCCESS'
 
     # make header
     type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
