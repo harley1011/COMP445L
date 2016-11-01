@@ -76,13 +76,15 @@ class HttpConnection(object):
     def tcp_send(self, message):
         self.tcp_socket.sendall(message.encode())
         response = bytearray()
-        while True:
-            data = self.tcp_socket.recv(4096)
-            if not data:
-                break
-            else:
-                response.extend(data)
-        return response
+        try:
+            while True:
+                data = self.tcp_socket.recv(4096)
+                if not data:
+                    break
+                else:
+                    response.extend(data)
+        finally:
+            return response
 
 
 class HttpResponse(object):
