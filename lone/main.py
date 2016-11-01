@@ -4,6 +4,7 @@ import re
 import lib.detailedusage as detailedusage
 import lib.httpc as httpc
 import json
+import threading
 from urllib.parse import urlparse
 
 
@@ -18,12 +19,13 @@ def main(argv):
 
     # parse options
     try:
-        opts, args = getopt.getopt(argv, "vrh:d:f:", ['d=', 'f='])
+        opts, args = getopt.getopt(argv, "vrh:c:d:f:", ['d=', 'f='])
     except getopt.GetoptError:
         give_help()
 
     request['verbose'] = False
     request['redirect'] = False
+    request['concurrent_request_no'] = 1
     request['header'] = {}
 
     if request['type'] == 'POST':
@@ -54,9 +56,12 @@ def main(argv):
         elif opt == '-f' or opt == '--f':
             get_file_data(request, arg)
             count -= 2
-        elif opt == '-r' or opt == '-r':
+        elif opt == '-r' or opt == '--r':
             request['redirect'] = True
             count -= 1
+        elif opt == '-c' or opt == '--c':
+            request['concurrent_request_no'] = int(arg)
+            count -= 2
 
     # check if a URL is provided
     if count != 1:
@@ -65,7 +70,17 @@ def main(argv):
 
     request['url'] = argv[-1]
 
-    send_http(request)
+    if request['concurrent_request_no'] > 1:
+        threads =[]
+        for i in range(0, request['concurrent_request_no']):
+            t = threading.Thread(target=send_http, args=(request,), daemon=True)
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join()
+    else:
+        send_http(request)
 
 
 def get_request_type(argv):

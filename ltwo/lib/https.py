@@ -1,7 +1,8 @@
 import socket
 import threading
 import datetime
-
+from time import sleep
+import random
 
 class HTTPServer(object):
     def __init__(self, queue):
@@ -134,6 +135,7 @@ class HttpRequest(object):
             print('\r\nSending response to client ', self.request_addr)
             print(header)
             print(send_body)
+            sleep(random.randrange(10))
             print('\r\nClosing connection to client {} now...'.format(self.request_addr))
 
         self.connection.sendall(send_body)

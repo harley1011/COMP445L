@@ -4,7 +4,6 @@ import getopt
 import queue
 import json
 import threading
-import datetime
 from os import listdir
 from os.path import isfile, join
 import lib.detailedusage as detailedusage
@@ -59,7 +58,7 @@ def give_help():
 def handle_requests(request_queue, directory):
     while True:
         request = request_queue.get()
-        handle_request(request, directory)
+        threading.Thread(target=handle_request,args=(request, directory), daemon=True).start()
 
 
 def handle_request(request, directory):
