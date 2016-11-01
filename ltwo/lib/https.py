@@ -135,7 +135,7 @@ class HttpRequest(object):
             print('\r\nSending response to client ', self.request_addr)
             print(header)
             print(send_body)
-            sleep(random.randrange(10))
+            # sleep(random.randrange(10))
             print('\r\nClosing connection to client {} now...'.format(self.request_addr))
 
         self.connection.sendall(send_body)

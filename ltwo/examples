@@ -12,3 +12,6 @@ client  -->  python lone/main.py get 127.0.0.1/detailedusage.py
 POST Example
 server  -->  python ltwo/server.py -v -d ./ltwo
 client  -->  python lone/main.py post -h Content-Type:application/json --f ltwo/body1.txt 127.0.0.1/test_file.txt
+
+
+python ltwo/server.py -v -d ./ltwo/testfiles
