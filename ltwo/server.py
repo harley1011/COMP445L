@@ -10,10 +10,12 @@ from os.path import isfile, join
 import lib.detailedusage as detailedusage
 import lib.https as https
 
+server_options = {}
+request_queue = queue.Queue()
+http_server = https.HTTPServer(request_queue)
+request_thread = None
 
 def main(argv):
-    request = {}
-
     if argv[0].lower() == 'help':
         give_help()
 
@@ -23,34 +25,34 @@ def main(argv):
     except getopt.GetoptError:
         give_help()
 
-    request['verbose'] = False
-    request['port'] = 8080
-    request['directory'] = './'
+    server_options['verbose'] = False
+    server_options['port'] = 80
+    server_options['directory'] = './'
 
     # cycle through options
     for opt, arg in opts:
         # verbose request
         if opt == '-v':
-            request['verbose'] = True
+            server_options['verbose'] = True
         elif opt == '-p' or opt == '--p':
-            request['port'] = int(arg)
+            server_options['port'] = int(arg)
         elif opt == '-d' or opt == '--d':
-            request['directory'] = arg
+            server_options['directory'] = arg
 
-    start_server(request)
+    threading.Thread(target=handle_requests, args=(request_queue, server_options['directory']), daemon=True).start()
+
+    threading.Thread(target=http_server.run_server, args=('127.0.0.1', server_options['port'], server_options['verbose']), daemon=True).start()
+
+    while True:
+        choice = input()
+        if choice == "q":
+            http_server.stop_server()
+            sys.exit()
 
 
 def give_help():
     detailedusage.get_usage()
     sys.exit()
-
-
-def start_server(request):
-    request_queue = queue.Queue()
-    threading.Thread(target=handle_requests, args=(request_queue, request['directory']), daemon=True).start()
-
-    http_server = https.HTTPServer(request_queue)
-    http_server.run_server('127.0.0.1', request['port'], request['verbose'])
 
 
 def handle_requests(request_queue, directory):
@@ -61,7 +63,6 @@ def handle_requests(request_queue, directory):
 
 
 def handle_request(request, directory):
-    response = None
     if request.method == 'GET' and request.path == '/':
         response = directory_list(request, directory)
     elif request.method == 'GET':
@@ -71,8 +72,7 @@ def handle_request(request, directory):
     else:
         response = handle_error(request, directory)
 
-    request.reply_to_request(response.response_header, response.response_body)
-    print('\r\n' + response.response_header)
+    request.reply_to_request(response.response_header, response.response_body, server_options['verbose'])
 
 
 def directory_list(request, directory):

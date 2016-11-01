@@ -6,20 +6,24 @@ class HTTPServer(object):
     def __init__(self, queue):
         self.verbose = False
         self.queue = queue
+        self.listener = None
 
     def run_server(self, host, port, verbose):
         self.verbose = verbose
-        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            listener.bind((host, port))
-            listener.listen(5)
+            self.listener.bind((host, port))
+            self.listener.listen(5)
             if self.verbose:
                 print('Server is listening on port ', port)
             while True:
-                conn, addr = listener.accept()
+                conn, addr = self.listener.accept()
                 threading.Thread(target=self.handle_client, args=(conn, addr, self.queue)).start()
         finally:
-            listener.close()
+            self.listener.close()
+
+    def stop_server(self):
+        self.listener.close()
 
     def handle_client(self, conn, addr, queue):
         if self.verbose:
@@ -29,15 +33,13 @@ class HTTPServer(object):
         try:
             while True:
                 data = conn.recv(4096)
-                more_content = False
                 if not data:
                     break
                 elif data.find(b'\r\n\r\n') != -1:
                     # If we have this then we know we have the status line and all the headers
                     request.extend(data)
-
                     http_request = HttpRequest()
-
+                    http_request.request_addr = addr
                     more_content = http_request.parse_request(request, conn)
                     if not more_content:
                         break
@@ -66,6 +68,7 @@ class HttpRequest(object):
         self.connection = None
         self.raw_request = None
         self.request_index = 0
+        self.request_addr = None
 
     def parse_request(self, request, connection):
         # extract stuff from response
@@ -120,12 +123,19 @@ class HttpRequest(object):
 
         return self.headers['Content-Length'] == len(self.message_body)
 
-    def reply_to_request(self, header, body):
+    def reply_to_request(self, header, body, verbose):
         self.connection.sendall(header.encode())
         try:
-            self.connection.sendall(body.encode())
+            send_body = body.encode()
         except:
-            self.connection.sendall(body)
+            send_body = body
+        if verbose:
+            print('\r\nSending response to client ', self.request_addr)
+            print(header)
+            print(send_body)
+            print('\r\nClosing connection to client {} now...'.format(self.request_addr))
+
+        self.connection.sendall(send_body)
         self.connection.shutdown(socket.SHUT_RDWR)
         self.connection.close()
 
