@@ -1,5 +1,6 @@
 import socket
 import threading
+import datetime
 
 
 class HTTPServer(object):
@@ -141,7 +142,23 @@ class HttpRequest(object):
 
 
 class HttpResponse(object):
-        def __init__(self, header, body):
-            self.response_header = header
-            self.response_body = body
+        def __init__(self, http_version, status_code, message, content_type, response_body):
+            type_line = '{} {} {}\r\n'.format(http_version, status_code, message)
+            content_type = 'Content-Type: {}'.format(content_type)
+
+            response_header = '{}Server: {}\r\n'.format(type_line, 'COMP 445 HTTP Server')
+
+            now = datetime.datetime.now()
+            response_header = '{}Date: {}\r\n'.format(response_header, str(now))
+
+            response_header = '{}{}\r\n'.format(response_header, content_type)
+            response_header = '{}Content-Length: {}\r\n'.format(response_header, len(response_body))
+            response_header = '{}Connection: {}\r\n'.format(response_header, 'Close')
+            response_header = '{}Access-Control-Allow-Origin: {}\r\n'.format(response_header, '*')
+            response_header = '{}Access-Control-Allow-Credentials: {}\r\n'.format(response_header, 'true')
+
+            self.response_header = '{}\r\n'.format(response_header)
+            self.response_body = response_body
+
+
 

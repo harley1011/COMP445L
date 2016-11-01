@@ -15,6 +15,7 @@ request_queue = queue.Queue()
 http_server = https.HTTPServer(request_queue)
 request_thread = None
 
+
 def main(argv):
     if argv[0].lower() == 'help':
         give_help()
@@ -58,7 +59,6 @@ def give_help():
 def handle_requests(request_queue, directory):
     while True:
         request = request_queue.get()
-
         handle_request(request, directory)
 
 
@@ -82,14 +82,7 @@ def directory_list(request, directory):
         if isfile(join(directory, file)):
             files.append(file)
 
-    # make body
-    response_body = json.dumps(files)
-
-    # make header
-    type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
-    content_type = 'Content-Type: {}'.format('application/json')
-
-    return create_response(type_line, content_type, response_body)
+    return https.HttpResponse(request.http_version, '200', 'OK', 'application/json', json.dumps(files))
 
 
 def file_content(request, directory):
@@ -106,14 +99,7 @@ def file_content(request, directory):
     except IOError:
         return handle_file_error(request, directory)
 
-    # make body
-    response_body = content
-
-    # make header
-    type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
-    content_type = 'Content-Type: {}'.format(get_file_type(request.path))
-
-    return create_response(type_line, content_type, response_body)
+    return https.HttpResponse(request.http_version, '200', 'OK', get_file_type(request.path), content)
 
 
 def file_set_content(request, directory):
@@ -131,53 +117,15 @@ def file_set_content(request, directory):
 
     file.write(request.message_body.encode())
 
-    # make body
-    response_body = 'SUCCESS'
-
-    # make header
-    type_line = '{} {} {}\r\n'.format(request.http_version, '200', 'OK')
-    content_type = 'Content-Type: {}'.format('text/plain')
-
-    return create_response(type_line, content_type, response_body)
+    return https.HttpResponse(request.http_version, '200', 'OK', 'text/plain', 'SUCCESS')
 
 
 def handle_error(request, directory):
-    # make body
-    response_body = 'Not A File'
-
-    # make header
-    type_line = '{} {} {}\r\n'.format(request.http_version, '400', 'Bad Request')
-    content_type = 'Content-Type: {}'.format('text/plain')
-
-    return create_response(type_line, content_type, response_body)
+    return https.HttpResponse(request.http_version, '400', 'Bad Request', 'text/plain', 'Not A File')
 
 
 def handle_file_error(request, directory):
-    # make body
-    response_body = 'Not A File'
-
-    # make header
-    type_line = '{} {} {}\r\n'.format(request.http_version, '404', 'Not Found')
-    content_type = 'Content-Type: {}'.format('text/plain')
-
-    return create_response(type_line, content_type, response_body)
-
-
-def create_response(type_line, content_type, response_body):
-    response_header = '{}Server: {}\r\n'.format(type_line, 'COMP 445 HTTP Server')
-
-    now = datetime.datetime.now()
-    response_header = '{}Date: {}\r\n'.format(response_header, str(now))
-
-    response_header = '{}{}\r\n'.format(response_header, content_type)
-    response_header = '{}Content-Length: {}\r\n'.format(response_header, len(response_body))
-    response_header = '{}Connection: {}\r\n'.format(response_header, 'Close')
-    response_header = '{}Access-Control-Allow-Origin: {}\r\n'.format(response_header, '*')
-    response_header = '{}Access-Control-Allow-Credentials: {}\r\n'.format(response_header, 'true')
-
-    # make response
-    response_header = '{}\r\n'.format(response_header)
-    return https.HttpResponse(response_header, response_body)
+    return https.HttpResponse(request.http_version, '404', 'Not Found', 'text/plain', 'Not A File')
 
 
 def valid_path(path):

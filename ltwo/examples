@@ -6,9 +6,9 @@ GET File Examples
 server  -->  python3 ltwo/server.py -v
 client  -->  python3 lone/main.py get 127.0.0.1/REAMDE.md
 
-server  -->  python3 ltwo/server.py -v -d ./ltwo/lib
-client  -->  python3 lone/main.py get 127.0.0.1/detailedusage.py
+server  -->  python ltwo/server.py -v -d ./ltwo/lib
+client  -->  python lone/main.py get 127.0.0.1/detailedusage.py
 
 POST Example
-server  -->  python3 ltwo/server.py -v -d ./ltwo
-client  -->  python3 lone/main.py post -h Content-Type:application/json --f ltwo/body1.txt 127.0.0.1/test_file.txt
+server  -->  python ltwo/server.py -v -d ./ltwo
+client  -->  python lone/main.py post -h Content-Type:application/json --f ltwo/body1.txt 127.0.0.1/test_file.txt
