@@ -1,9 +1,12 @@
-import socket
 import ipaddress
+import socket
 import threading
-from packet import Packet
-from packet_type import PacketType
-from connection_status import ConnectionStatus
+
+from lib.connection_status import ConnectionStatus
+from lib.packet_type import PacketType
+
+from lib.packet import Packet
+
 
 class Tcp:
     def __init__(self, router_addr, router_port):
@@ -16,7 +19,7 @@ class Tcp:
         self.peer_addr = ""
         self.peer_port = 0
         self.messages_to_send = []
-        self.message_recieved = []
+        self.message_received = []
         self.send_seq_num = 0
         self.rec_seq_num = 0
         self.window_size = 5
@@ -27,8 +30,9 @@ class Tcp:
     def listen_for_connections(self, port):
         while True:
             data, sender = self.listen_for_response(port)
-            #todo run on separate thread
-            self.send_syn_ack(sender, data)
+            p = Packet.from_bytes(data)
+            if p.packet_type == PacketType.SYN:
+                self.send_syn_ack(p)
 
     def send(self, peer_addr, peer_port, message):
         if self.connection_status == ConnectionStatus.Closed:
@@ -63,12 +67,11 @@ class Tcp:
 
     def message_read_worker(self):
         while True:
-            #todo determine if packet is an ACK or data packet.
-            #todo reconstruct the original message in the correct order
+            # todo determine if packet is an ACK or data packet.
+            # todo reconstruct the original message in the correct order
             data = self.connection.recvfrom(1024)
 
-    def send_syn_ack(self, data):
-        p = Packet.from_bytes(data)
+    def send_syn_ack(self, p):
         p.payload = ''
         p.packet_type = PacketType.SYN_ACK
         p.seq_num = 0

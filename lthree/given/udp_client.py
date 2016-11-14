@@ -2,7 +2,7 @@ import argparse
 import ipaddress
 import socket
 
-from packet import Packet
+from lthree.lib.packet import Packet
 
 
 def run_client(router_addr, router_port, server_addr, server_port):
