@@ -24,6 +24,17 @@ class HTTPServer(object):
         finally:
             self.listener.close()
 
+        conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            conn.bind(('', port))
+            print('Echo server is listening at', port)
+            while True:
+                data, sender = conn.recvfrom(1024)
+                handle_client(conn, data, sender)
+
+        finally:
+            conn.close()
+
     def stop_server(self):
         self.listener.close()
 
