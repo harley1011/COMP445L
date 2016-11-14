@@ -37,7 +37,6 @@ class Tcp:
             self.connection_status = ConnectionStatus.Listening
             data, sender = self.listen_for_response(self.port)
             p = Packet.from_bytes(data)
-            self.connection = sender
             if p.packet_type == PacketType.SYN.value:
                 self.send_syn_ack(p)
 
@@ -49,7 +48,7 @@ class Tcp:
             p = self.wait_for_response()
             if p.packet_type == PacketType.SYN_ACK.value:
                 self.connection_status = ConnectionStatus.Open
-                threading.Thread(target=self.message_worker, daemon=True).start()
+                threading.Thread(target=self.message_write_worker, daemon=True).start()
                 threading.Thread(target=self.message_read_worker, daemon=True).start()
         self.messages_to_send.push(message)
 
@@ -94,7 +93,7 @@ class Tcp:
         self.send_seq_num += 1
         self.send_packet(p)
 
-    def send_ack(self,):
+    def send_ack(self, ):
         p = Packet(packet_type=PacketType.SYN.value,
                    seq_num=self.send_seq_num,
                    peer_ip_addr=self.peer_ip_addr,
@@ -103,7 +102,8 @@ class Tcp:
         self.send_packet(p)
 
     def send_packet(self, p):
-        self.connection.sendto(p.to_bytes(), (self.router_addr, self.router_port))
+        b = p.to_bytes()
+        self.connection.sendto(b, (self.router_addr, self.router_port))
         print('Send "{}" to router'.format(p.payload))
 
     def wait_for_response(self, timeout=500):
@@ -121,11 +121,7 @@ class Tcp:
 
     def listen_for_response(self, port):
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            self.connection.bind(('', port))
-            while True:
-                data, sender = self.connection.recvfrom(1024)
-                return data, sender
-
-        finally:
-            self.connection.close()
+        self.connection.bind(('', port))
+        while True:
+            data, sender = self.connection.recvfrom(1024)
+            return data, sender
