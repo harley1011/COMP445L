@@ -17,6 +17,7 @@ class Tcp:
         self.connection = ""
         self.peer_ip = ""
         self.peer_addr = ""
+        self.port = 5555
         self.peer_port = 0
         self.messages_to_send = []
         self.message_received = []
@@ -27,11 +28,17 @@ class Tcp:
         self.transmitted_packets = {}
         self.payload_size = 1013
 
-    def listen_for_connections(self, port):
-        while True:
-            data, sender = self.listen_for_response(port)
+    def start_listening(self, port):
+        self.port = port
+        threading.Thread(target=self.listen_for_connections, daemon=True).start()
+
+    def listen_for_connections(self):
+        if self.connection_status == ConnectionStatus.Closed:
+            self.connection_status = ConnectionStatus.Listening
+            data, sender = self.listen_for_response(self.port)
             p = Packet.from_bytes(data)
-            if p.packet_type == PacketType.SYN:
+            self.connection = sender
+            if p.packet_type == PacketType.SYN.value:
                 self.send_syn_ack(p)
 
     def send(self, peer_addr, peer_port, message):
@@ -40,12 +47,10 @@ class Tcp:
             self.peer_port = peer_port
             self.send_syn()
             p = self.wait_for_response()
-            if p.packet_type == PacketType.SYN_ACK:
+            if p.packet_type == PacketType.SYN_ACK.value:
                 self.connection_status = ConnectionStatus.Open
-                threading.Thread(target=self.message_worker,
-                                 daemon=True).start()
+                threading.Thread(target=self.message_worker, daemon=True).start()
                 threading.Thread(target=self.message_read_worker, daemon=True).start()
-
         self.messages_to_send.push(message)
 
     def message_write_worker(self):
@@ -56,7 +61,7 @@ class Tcp:
                     self.send_seq_num += 1
                     to_send = current_message[:self.payload_size]
                     current_message = current_message[self.payload_size:]
-                    p = Packet(packet_type=PacketType.DATA,
+                    p = Packet(packet_type=PacketType.DATA.value,
                                seq_num=self.send_seq_num,
                                peer_ip_addr=self.peer_ip,
                                peer_port=self.peer_port,
@@ -73,46 +78,46 @@ class Tcp:
 
     def send_syn_ack(self, p):
         p.payload = ''
-        p.packet_type = PacketType.SYN_ACK
-        p.seq_num = 0
-        self.connection.sendto(p.to_bytes(), self.connection)
+        p.packet_type = PacketType.SYN_ACK.value
+        self.send_seq_num += 1
+        p.seq_num = self.send_seq_num
+        self.send_packet(p)
 
     def send_syn(self):
-        self.peer_ip = ipaddress.ip_address(socket.gethostbyname(self.peer_ip))
+        self.peer_ip = ipaddress.ip_address(socket.gethostbyname(self.peer_addr))
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        p = Packet(packet_type=PacketType.SYN,
-                   seq_num=0,
+        p = Packet(packet_type=PacketType.SYN.value,
+                   seq_num=self.send_seq_num,
                    peer_ip_addr=self.peer_ip,
                    peer_port=self.peer_port,
                    payload='')
+        self.send_seq_num += 1
         self.send_packet(p)
 
-    def send_ack_and_wait(self, conn, p):
-        p = Packet(packet_type=PacketType.SYN,
-                   seq_num=0,
-                   peer_ip_addr=self.setup_packet.peer_ip_addr,
-                   peer_port=self.setup_packet.server_port,
+    def send_ack(self,):
+        p = Packet(packet_type=PacketType.SYN.value,
+                   seq_num=self.send_seq_num,
+                   peer_ip_addr=self.peer_ip_addr,
+                   peer_port=self.server_port,
                    payload='')
-        self.send_packet(conn, p)
-        p = self.wait_for_response(conn)
+        self.send_packet(p)
 
     def send_packet(self, p):
         self.connection.sendto(p.to_bytes(), (self.router_addr, self.router_port))
         print('Send "{}" to router'.format(p.payload))
 
-    def wait_for_response(self, conn, timeout=5):
+    def wait_for_response(self, timeout=500):
         try:
             self.connection.settimeout(timeout)
             print('Waiting for a response')
-            response, sender = conn.recvfrom(1024)
+            response, sender = self.connection.recvfrom(1024)
             p = Packet.from_bytes(response)
             print('Router: ', sender)
             print('Packet: ', p)
             print('Payload: ' + p.payload.decode("utf-8"))
-
+            return p
         except socket.timeout:
             print('No response after {}s'.format(timeout))
-        return p
 
     def listen_for_response(self, port):
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
