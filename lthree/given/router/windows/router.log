@@ -1,0 +1,10 @@
+10:01:28.090558 config: drop-rate=0.00, max-delay=10ms, seed=1
+10:01:28.092559 router is listening at :3000
+10:01:33.086418 config: drop-rate=0.00, max-delay=10ms, seed=1
+10:01:33.088410 router is listening at :3000
+10:01:39.564149 [queue=1] packet #0, 127.0.0.1:64476 -> 127.0.0.1:5666, sz=0 is delayed for 8.7ms
+10:01:39.574559 [queue=0] packet #0, 127.0.0.1:64476 -> 127.0.0.1:5666, sz=0 is delivered
+10:01:39.576069 [queue=1] packet #1, 127.0.0.1:5666 -> 127.0.0.1:64476, sz=0 is delayed for 5.9ms
+10:01:39.585065 [queue=0] packet #1, 127.0.0.1:5666 -> 127.0.0.1:64476, sz=0 is delivered
+10:01:39.624095 [queue=1] packet #2, 127.0.0.1:64476 -> 127.0.0.1:5666, sz=5 is delayed for 1.8ms
+10:01:39.626595 [queue=0] packet #2, 127.0.0.1:64476 -> 127.0.0.1:5666, sz=5 is delivered
