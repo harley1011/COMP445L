@@ -76,17 +76,36 @@ class Tcp:
                         self.send_packet(p)
 
     def message_read_worker(self):
-        while True:
+        while self.connection_status == ConnectionStatus.Open:
             # todo determine if packet is an ACK or data packet.
             # todo if ACK in stop timer and move window if necessary
             # todo reconstruct the original message in the correct order
             data = self.connection.recvfrom(1024)
             p = Packet.from_bytes(data[0])
+            self.rec_seq_num = p.seq_num
+
+            if p.packet_type == PacketType.ACK.value:
+                self.handle_ack(p)
+            elif p.packet_type == PacketType.NAK.value:
+                self.handle_nack(p)
+            elif p.packet_type == PacketType.DATA.value:
+                self.handle_data(p)
+
             print(p)
+
+    def handle_ack(self, p):
+        print('ACK')
+
+    def handle_nack(self, p):
+        print('NAK')
+
+    def handle_data(self, p):
+        print('DATA')
 
     def send_syn_ack(self, p):
         p.payload = ''
         p.packet_type = PacketType.SYN_ACK.value
+        self.rec_seq_num = p.seq_num
         self.send_seq_num += 1
         p.seq_num = self.send_seq_num
         self.send_packet(p)
