@@ -3,6 +3,9 @@ RUNNING THE ROUTER
 Windows:
 router_x86 --port=3000 --drop-rate=0 --max-delay=10ms --seed=1
 
+MacOs
+./router --port=3000 --drop-rate=0 --max-delay=10ms --seed=1
+
 
 TESTING HANDSHAKE
 

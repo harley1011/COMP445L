@@ -1,0 +1,6 @@
+16:06:38.655164 config: drop-rate=0.00, max-delay=0s, seed=1479243998655052432
+16:06:38.655302 router is listening at :3000
+16:06:47.219586 config: drop-rate=0.00, max-delay=0s, seed=1479244007219532884
+16:06:47.219752 router is listening at :3000
+16:06:57.159660 config: drop-rate=0.00, max-delay=10ms, seed=1
+16:06:57.159797 router is listening at :3000
