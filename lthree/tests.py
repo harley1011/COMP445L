@@ -17,6 +17,9 @@ class TestHttp(unittest.TestCase):
         self.assertEquals(tcp_listener.connection_status, connection_status.ConnectionStatus.Listening)
 
         tcp_sender.send('localhost', 5666, "hello")
+
+        time.sleep(5)
         self.assertEquals(tcp_listener.connection_status, connection_status.ConnectionStatus.Open)
+        self.assertEquals(tcp_sender.connection_status, connection_status.ConnectionStatus.Open)
 
 

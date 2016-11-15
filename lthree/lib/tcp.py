@@ -36,6 +36,7 @@ class Tcp:
         if self.connection_status == ConnectionStatus.Closed:
             self.connection_status = ConnectionStatus.Listening
             data, sender = self.listen_for_response(self.port)
+            self.connection_status = ConnectionStatus.Open
             p = Packet.from_bytes(data)
             if p.packet_type == PacketType.SYN.value:
                 self.send_syn_ack(p)
@@ -50,30 +51,32 @@ class Tcp:
                 self.connection_status = ConnectionStatus.Open
                 threading.Thread(target=self.message_write_worker, daemon=True).start()
                 threading.Thread(target=self.message_read_worker, daemon=True).start()
-        self.messages_to_send.push(message)
+        self.messages_to_send.append(message)
 
     def message_write_worker(self):
         while self.connection_status == ConnectionStatus.Open:
-            current_message = self.messages_to_send[0]
-            while len(current_message) > 0:
-                while self.ack_packets > 0:
-                    self.send_seq_num += 1
-                    to_send = current_message[:self.payload_size]
-                    current_message = current_message[self.payload_size:]
-                    p = Packet(packet_type=PacketType.DATA.value,
-                               seq_num=self.send_seq_num,
-                               peer_ip_addr=self.peer_ip,
-                               peer_port=self.peer_port,
-                               payload=to_send)
-                    # store the packet in-case we have to send it again
-                    self.transmitted_packets[self.send_seq_num] = p
-                    self.send_packet(p)
+            if len(self.messages_to_send) > 0:
+                current_message = self.messages_to_send.pop()
+                while len(current_message) > 0:
+                    while self.ack_packets > 0 and len(current_message) > 0:
+                        self.send_seq_num += 1
+                        to_send = current_message[:self.payload_size]
+                        current_message = current_message[self.payload_size:]
+                        p = Packet(packet_type=PacketType.DATA.value,
+                                   seq_num=self.send_seq_num,
+                                   peer_ip_addr=self.peer_ip,
+                                   peer_port=self.peer_port,
+                                   payload=to_send.encode("utf-8"))
+                        # store the packet in-case we have to send it again
+                        self.transmitted_packets[self.send_seq_num] = p
+                        self.send_packet(p)
 
     def message_read_worker(self):
         while True:
             # todo determine if packet is an ACK or data packet.
             # todo reconstruct the original message in the correct order
             data = self.connection.recvfrom(1024)
+            print(data)
 
     def send_syn_ack(self, p):
         p.payload = ''
