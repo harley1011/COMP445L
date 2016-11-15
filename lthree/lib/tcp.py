@@ -40,6 +40,8 @@ class Tcp:
             p = Packet.from_bytes(data)
             if p.packet_type == PacketType.SYN.value:
                 self.send_syn_ack(p)
+                threading.Thread(target=self.message_write_worker, daemon=True).start()
+                threading.Thread(target=self.message_read_worker, daemon=True).start()
 
     def send(self, peer_addr, peer_port, message):
         if self.connection_status == ConnectionStatus.Closed:
@@ -59,6 +61,8 @@ class Tcp:
                 current_message = self.messages_to_send.pop()
                 while len(current_message) > 0:
                     while self.ack_packets > 0 and len(current_message) > 0:
+                        # todo create timer for timeout of ack
+                        self.ack_packets -= 1
                         self.send_seq_num += 1
                         to_send = current_message[:self.payload_size]
                         current_message = current_message[self.payload_size:]
@@ -74,9 +78,11 @@ class Tcp:
     def message_read_worker(self):
         while True:
             # todo determine if packet is an ACK or data packet.
+            # todo if ACK in stop timer and move window if necessary
             # todo reconstruct the original message in the correct order
             data = self.connection.recvfrom(1024)
-            print(data)
+            p = Packet.from_bytes(data[0])
+            print(p)
 
     def send_syn_ack(self, p):
         p.payload = ''
@@ -107,17 +113,17 @@ class Tcp:
     def send_packet(self, p):
         b = p.to_bytes()
         self.connection.sendto(b, (self.router_addr, self.router_port))
-        print('Send "{}" to router'.format(p.payload))
+        # print('Send "{}" to router'.format(p.payload))
 
     def wait_for_response(self, timeout=500):
         try:
             self.connection.settimeout(timeout)
-            print('Waiting for a response')
+            # print('Waiting for a response')
             response, sender = self.connection.recvfrom(1024)
             p = Packet.from_bytes(response)
-            print('Router: ', sender)
-            print('Packet: ', p)
-            print('Payload: ' + p.payload.decode("utf-8"))
+            # print('Router: ', sender)
+            # print('Packet: ', p)
+            # print('Payload: ' + p.payload.decode("utf-8"))
             return p
         except socket.timeout:
             print('No response after {}s'.format(timeout))
