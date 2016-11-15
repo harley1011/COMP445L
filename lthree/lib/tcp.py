@@ -96,15 +96,34 @@ class Tcp:
     def handle_ack(self, p):
         print('ACK')
 
+        if p.seq_num not in self.transmitted_packets:
+            return
+
+        self.transmitted_packets[p.seq_num] = None
+
+        min = None
+        for seq_num in self.transmitted_packets:
+            if min is None or min > seq_num:
+                min = seq_num
+
+        # slide window
+        if p.seq_num == min:
+            self.transmitted_packets.pop(p.seq_num, None)
+
+        self.ack_packets += 1
+
     def handle_nack(self, p):
         print('NAK')
 
     def handle_data(self, p):
         print('DATA')
+        self.send_ack()
 
     def send_syn_ack(self, p):
         p.payload = ''
         p.packet_type = PacketType.SYN_ACK.value
+        self.peer_ip = p.peer_ip_addr
+        self.peer_port = p.peer_port
         self.rec_seq_num = p.seq_num
         self.send_seq_num += 1
         p.seq_num = self.send_seq_num
@@ -121,11 +140,11 @@ class Tcp:
         self.send_seq_num += 1
         self.send_packet(p)
 
-    def send_ack(self, ):
-        p = Packet(packet_type=PacketType.SYN.value,
-                   seq_num=self.send_seq_num,
-                   peer_ip_addr=self.peer_ip_addr,
-                   peer_port=self.server_port,
+    def send_ack(self):
+        p = Packet(packet_type=PacketType.ACK.value,
+                   seq_num=self.rec_seq_num,
+                   peer_ip_addr=self.peer_ip,
+                   peer_port=self.peer_port,
                    payload='')
         self.send_packet(p)
 
