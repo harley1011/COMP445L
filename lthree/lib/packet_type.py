@@ -6,3 +6,4 @@ class PacketType(Enum):
     ACK = 1
     SYN_ACK = 2
     DATA = 3
+    NAK = 4
