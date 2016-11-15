@@ -77,12 +77,13 @@ class Tcp:
 
     def message_read_worker(self):
         while self.connection_status == ConnectionStatus.Open:
-            # todo determine if packet is an ACK or data packet.
             # todo if ACK in stop timer and move window if necessary
             # todo reconstruct the original message in the correct order
             data = self.connection.recvfrom(1024)
             p = Packet.from_bytes(data[0])
             self.rec_seq_num = p.seq_num
+
+            print(p)
 
             if p.packet_type == PacketType.ACK.value:
                 self.handle_ack(p)
@@ -91,33 +92,32 @@ class Tcp:
             elif p.packet_type == PacketType.DATA.value:
                 self.handle_data(p)
 
-            print(p)
-
     def handle_ack(self, p):
-        print('ACK')
+        print('Handle ACK')
 
         if p.seq_num not in self.transmitted_packets:
             return
 
         self.transmitted_packets[p.seq_num] = None
+        self.evaluate_window()
+        self.ack_packets += 1
 
+    def handle_nack(self, p):
+        print('Handle NAK')
+
+    def handle_data(self, p):
+        print('Handle Data')
+        self.send_ack()
+
+    def evaluate_window(self):
         min = None
         for seq_num in self.transmitted_packets:
             if min is None or min > seq_num:
                 min = seq_num
 
         # slide window
-        if p.seq_num == min:
-            self.transmitted_packets.pop(p.seq_num, None)
-
-        self.ack_packets += 1
-
-    def handle_nack(self, p):
-        print('NAK')
-
-    def handle_data(self, p):
-        print('DATA')
-        self.send_ack()
+        if self.transmitted_packets[min]:
+            self.transmitted_packets.pop(min, None)
 
     def send_syn_ack(self, p):
         p.payload = ''

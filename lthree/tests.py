@@ -16,7 +16,13 @@ class TestHttp(unittest.TestCase):
         time.sleep(1)
         self.assertEquals(tcp_listener.connection_status, connection_status.ConnectionStatus.Listening)
 
-        tcp_sender.send('localhost', 5666, "hello")
+        # tcp_sender.send('localhost', 5666, "hello")
+
+        f = open('../ltwo/testfiles/body1.txt', 'r')
+        body = f.read()
+        f.close()
+
+        tcp_sender.send('localhost', 5666, body)
 
         time.sleep(5)
         self.assertEquals(tcp_listener.connection_status, connection_status.ConnectionStatus.Open)
