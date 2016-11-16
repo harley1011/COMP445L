@@ -25,7 +25,7 @@ class Tcp:
         self.rec_seq_num = 0
         self.window_size = 5
         self.ack_packets = 5
-        self.transmitted_packets = {}
+        self.transmitted_packets = []
         self.payload_size = 1013
 
     def start_listening(self, port):
@@ -72,7 +72,7 @@ class Tcp:
                                    peer_port=self.peer_port,
                                    payload=to_send.encode("utf-8"))
                         # store the packet in-case we have to send it again
-                        self.transmitted_packets[self.send_seq_num] = p
+                        self.transmitted_packets.append(p)
                         self.send_packet(p)
 
     def message_read_worker(self):
@@ -95,10 +95,13 @@ class Tcp:
     def handle_ack(self, p):
         print('Handle ACK')
 
-        if p.seq_num not in self.transmitted_packets:
-            return
+        for i in range(len(self.transmitted_packets)):
+            if p.seq_num == self.transmitted_packets[i].seq_num:
+                self.transmitted_packets[i] = None
+                break
+            elif i == len(self.transmitted_packets)-1:
+                return
 
-        self.transmitted_packets[p.seq_num] = None
         self.evaluate_window()
         self.ack_packets += 1
 
@@ -110,14 +113,11 @@ class Tcp:
         self.send_ack()
 
     def evaluate_window(self):
-        min = None
-        for seq_num in self.transmitted_packets:
-            if min is None or min > seq_num:
-                min = seq_num
+        while len(self.transmitted_packets) > 0:
+            if self.transmitted_packets[0] is not None:
+                return
 
-        # slide window
-        if self.transmitted_packets[min]:
-            self.transmitted_packets.pop(min, None)
+            self.transmitted_packets.pop(0)
 
     def send_syn_ack(self, p):
         p.payload = ''
