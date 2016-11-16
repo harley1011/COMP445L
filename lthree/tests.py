@@ -18,7 +18,7 @@ class TestHttp(unittest.TestCase):
 
         # tcp_sender.send('localhost', 5666, "hello")
 
-        f = open('../ltwo/testfiles/body1.txt', 'r')
+        f = open('../ltwo/testfiles/body3.txt', 'r')
         body = f.read()
         f.close()
 
@@ -27,6 +27,7 @@ class TestHttp(unittest.TestCase):
         time.sleep(5)
         self.assertEquals(tcp_listener.connection_status, connection_status.ConnectionStatus.Open)
         self.assertEquals(tcp_sender.connection_status, connection_status.ConnectionStatus.Open)
+
 
 
 

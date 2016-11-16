@@ -1,6 +1,7 @@
 import ipaddress
 import socket
 import threading
+import math
 
 from lib.connection_status import ConnectionStatus
 from lib.packet_type import PacketType
@@ -20,13 +21,14 @@ class Tcp:
         self.port = 5555
         self.peer_port = 0
         self.messages_to_send = []
-        self.message_received = []
+        self.messages_received = []
         self.send_seq_num = 0
         self.rec_seq_num = 0
         self.window_size = 5
-        self.ack_packets = 5
-        self.transmitted_packets = []
+        self.send_window = []
+        self.receive_window = [None] * self.window_size
         self.payload_size = 1013
+        self.max_seq_num = math.pow(2, 32)
 
     def start_listening(self, port):
         self.port = port
@@ -60,10 +62,8 @@ class Tcp:
             if len(self.messages_to_send) > 0:
                 current_message = self.messages_to_send.pop()
                 while len(current_message) > 0:
-                    while self.ack_packets > 0 and len(current_message) > 0:
+                    while len(self.send_window) < self.window_size and len(current_message) > 0:
                         # todo create timer for timeout of ack
-                        self.ack_packets -= 1
-                        self.send_seq_num += 1
                         to_send = current_message[:self.payload_size]
                         current_message = current_message[self.payload_size:]
                         p = Packet(packet_type=PacketType.DATA.value,
@@ -72,16 +72,15 @@ class Tcp:
                                    peer_port=self.peer_port,
                                    payload=to_send.encode("utf-8"))
                         # store the packet in-case we have to send it again
-                        self.transmitted_packets.append(p)
+                        self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
+                        self.send_window.append(p)
                         self.send_packet(p)
 
     def message_read_worker(self):
         while self.connection_status == ConnectionStatus.Open:
             # todo if ACK in stop timer and move window if necessary
-            # todo reconstruct the original message in the correct order
             data = self.connection.recvfrom(1024)
             p = Packet.from_bytes(data[0])
-            self.rec_seq_num = p.seq_num
 
             print(p)
 
@@ -92,41 +91,57 @@ class Tcp:
             elif p.packet_type == PacketType.DATA.value:
                 self.handle_data(p)
 
+            # print(self.messages_received)
+
     def handle_ack(self, p):
         print('Handle ACK')
 
-        for i in range(len(self.transmitted_packets)):
-            if p.seq_num == self.transmitted_packets[i].seq_num:
-                self.transmitted_packets[i] = None
+        for i in range(len(self.send_window)):
+            if p.seq_num == self.send_window[i].seq_num:
+                self.send_window[i] = None
                 break
-            elif i == len(self.transmitted_packets)-1:
+            elif i == len(self.send_window)-1:
                 return
 
-        self.evaluate_window()
-        self.ack_packets += 1
+        self.evaluate_send_window()
 
     def handle_nack(self, p):
         print('Handle NAK')
 
     def handle_data(self, p):
         print('Handle Data')
-        self.send_ack()
 
-    def evaluate_window(self):
-        while len(self.transmitted_packets) > 0:
-            if self.transmitted_packets[0] is not None:
+        index = p.seq_num - self.rec_seq_num if self.rec_seq_num <= p.seq_num else \
+            (1 + self.max_seq_num - self.rec_seq_num) + p.seq_num
+        index = int(index)
+        if index < self.window_size:
+            self.receive_window[index] = p
+
+        self.evaluate_rec_window()
+        self.send_ack(p.seq_num)
+
+    def evaluate_send_window(self):
+        while len(self.send_window) > 0:
+            if self.send_window[0] is not None:
                 return
 
-            self.transmitted_packets.pop(0)
+            self.send_window.pop(0)
+
+    def evaluate_rec_window(self):
+        while True:
+            if self.receive_window[0] is None:
+                return
+
+            self.messages_received.append(self.receive_window.pop(0).payload)
+            self.receive_window.append(None)
+            self.rec_seq_num = (self.rec_seq_num + 1) % (self.max_seq_num + 1)
 
     def send_syn_ack(self, p):
         p.payload = ''
         p.packet_type = PacketType.SYN_ACK.value
         self.peer_ip = p.peer_ip_addr
         self.peer_port = p.peer_port
-        self.rec_seq_num = p.seq_num
-        self.send_seq_num += 1
-        p.seq_num = self.send_seq_num
+        self.rec_seq_num = (p.seq_num+1) % (self.max_seq_num + 1)
         self.send_packet(p)
 
     def send_syn(self):
@@ -140,9 +155,9 @@ class Tcp:
         self.send_seq_num += 1
         self.send_packet(p)
 
-    def send_ack(self):
+    def send_ack(self, num):
         p = Packet(packet_type=PacketType.ACK.value,
-                   seq_num=self.rec_seq_num,
+                   seq_num=num,
                    peer_ip_addr=self.peer_ip,
                    peer_port=self.peer_port,
                    payload='')
