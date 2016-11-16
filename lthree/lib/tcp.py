@@ -91,8 +91,6 @@ class Tcp:
             elif p.packet_type == PacketType.DATA.value:
                 self.handle_data(p)
 
-            # print(self.messages_received)
-
     def handle_ack(self, p):
         print('Handle ACK')
 
