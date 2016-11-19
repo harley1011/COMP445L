@@ -40,29 +40,27 @@ class Tcp:
     def listen_for_connections(self):
         if self.connection_status == ConnectionStatus.Closed:
             self.connection_status = ConnectionStatus.Listening
-            data, sender = self.listen_for_response(self.port)
-            self.connection_status = ConnectionStatus.Open
-            p = Packet.from_bytes(data)
-            if p.packet_type == PacketType.SYN.value:
-                self.send_syn_ack(p)
-                threading.Thread(target=self.message_write_worker, daemon=True).start()
-                threading.Thread(target=self.message_read_worker, daemon=True).start()
-                threading.Thread(target=self.timer_worker, daemon=True).start()
+            self.connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.connection.bind(('', self.port))
+            threading.Thread(target=self.message_write_worker, daemon=True).start()
+            threading.Thread(target=self.message_read_worker, daemon=True).start()
+            threading.Thread(target=self.timer_worker, daemon=True).start()
 
     def send(self, peer_addr, peer_port, message):
         if self.connection_status == ConnectionStatus.Closed:
             self.peer_addr = peer_addr
             self.peer_port = peer_port
             self.send_syn()
-            p = self.wait_for_response()
-            if p.packet_type == PacketType.SYN_ACK.value:
-                self.connection_status = ConnectionStatus.Open
-                threading.Thread(target=self.message_write_worker, daemon=True).start()
-                threading.Thread(target=self.message_read_worker, daemon=True).start()
-                threading.Thread(target=self.timer_worker, daemon=True).start()
+            self.connection_status = ConnectionStatus.Handshake
+            threading.Thread(target=self.message_write_worker, daemon=True).start()
+            threading.Thread(target=self.message_read_worker, daemon=True).start()
+            threading.Thread(target=self.timer_worker, daemon=True).start()
         self.messages_to_send.append(message)
 
     def message_write_worker(self):
+        while self.connection_status == ConnectionStatus.Listening or self.connection_status == ConnectionStatus.Handshake:
+            pass
+
         while self.connection_status == ConnectionStatus.Open:
             if len(self.messages_to_send) > 0:
                 current_message = self.messages_to_send.pop()
@@ -82,40 +80,56 @@ class Tcp:
                         self.send_packet(p)
 
     def timer_worker(self):
-        while self.connection_status == ConnectionStatus.Open:
+        while self.connection_status != ConnectionStatus.Closed:
             self.send_window_lock.acquire(True)
             for packet_and_timer in self.send_window:
                 if packet_and_timer is None:
                     continue
 
-                packet = packet_and_timer['packet']
+                p = packet_and_timer['packet']
                 timer = packet_and_timer['timer']
                 now = time.time()
                 elapsed = now - timer
 
                 if elapsed >= self.max_time:
                     packet_and_timer['timer'] = time.time()
-                    self.send_packet(packet)
+                    self.send_packet(p)
+
             self.send_window_lock.release()
 
     def message_read_worker(self):
-        while self.connection_status == ConnectionStatus.Open:
+        while self.connection_status != ConnectionStatus.Closed:
             data = self.connection.recvfrom(1024)
             p = Packet.from_bytes(data[0])
 
             print(p)
 
-            if p.packet_type == PacketType.ACK.value:
-                self.send_window_lock.acquire(True)
+            if p.packet_type == PacketType.SYN.value:
+                self.handle_syn(p)
+            elif p.packet_type == PacketType.SYN_ACK.value:
+                self.handle_syn_ack(p)
+            elif p.packet_type == PacketType.ACK.value and self.connection_status == ConnectionStatus.Open:
                 self.handle_ack(p)
-                self.send_window_lock.release()
-            elif p.packet_type == PacketType.NAK.value:
+            elif p.packet_type == PacketType.NAK.value and self.connection_status == ConnectionStatus.Open:
                 self.handle_nack(p)
-            elif p.packet_type == PacketType.DATA.value:
+            elif p.packet_type == PacketType.DATA.value and self.connection_status != ConnectionStatus.Listening:
+                if self.connection_status == ConnectionStatus.Handshake:
+                    self.connection_status = ConnectionStatus.Open
                 self.handle_data(p)
+
+    def handle_syn(self, p):
+        print('Handle SYN')
+        self.connection_status = ConnectionStatus.Handshake
+        self.send_syn_ack(p)
+
+    def handle_syn_ack(self, p):
+        print('Handle SYN ACK')
+        self.connection_status = ConnectionStatus.Open
+        self.handle_ack(p)
 
     def handle_ack(self, p):
         print('Handle ACK')
+        self.send_window_lock.acquire(True)
 
         for i in range(len(self.send_window)):
             packet_and_timer = self.send_window[i]
@@ -129,6 +143,7 @@ class Tcp:
                 return
 
         self.evaluate_send_window()
+        self.send_window_lock.release()
 
     def handle_nack(self, p):
         print('Handle NAK')
@@ -177,7 +192,9 @@ class Tcp:
                    peer_ip_addr=self.peer_ip,
                    peer_port=self.peer_port,
                    payload='')
-        self.send_seq_num += 1
+        self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
+        packet_and_timer = {'packet': p, 'timer': time.time()}
+        self.send_window.append(packet_and_timer)
         self.send_packet(p)
 
     def send_ack(self, num):

@@ -18,13 +18,15 @@ class TestHttp(unittest.TestCase):
 
         # tcp_sender.send('localhost', 5666, "hello")
 
-        f = open('../ltwo/testfiles/body3.txt', 'r')
+        f = open('../ltwo/testfiles/body4.txt', 'r')
         body = f.read()
         f.close()
 
         tcp_sender.send('localhost', 5666, body)
 
-        time.sleep(20)
+        time.sleep(30)
+
+        print(tcp_listener.messages_received)
 
         self.assertEquals(tcp_listener.connection_status, connection_status.ConnectionStatus.Open)
         self.assertEquals(tcp_sender.connection_status, connection_status.ConnectionStatus.Open)
