@@ -209,24 +209,3 @@ class Tcp:
         b = p.to_bytes()
         self.connection.sendto(b, (self.router_addr, self.router_port))
         # print('Send "{}" to router'.format(p.payload))
-
-    def wait_for_response(self, timeout=5):
-        try:
-            self.connection.settimeout(timeout)
-            # print('Waiting for a response')
-            response, sender = self.connection.recvfrom(1024)
-            p = Packet.from_bytes(response)
-            # print('Router: ', sender)
-            # print('Packet: ', p)
-            # print('Payload: ' + p.payload.decode("utf-8"))
-            self.connection.settimeout(None)
-            return p
-        except socket.timeout:
-            print('No response after {}s'.format(timeout))
-
-    def listen_for_response(self, port):
-        self.connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.connection.bind(('', port))
-        while True:
-            data, sender = self.connection.recvfrom(1024)
-            return data, sender
