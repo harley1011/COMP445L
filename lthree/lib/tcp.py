@@ -2,6 +2,7 @@ import ipaddress
 import socket
 import threading
 import math
+import time
 
 from lib.connection_status import ConnectionStatus
 from lib.packet_type import PacketType
@@ -26,9 +27,11 @@ class Tcp:
         self.rec_seq_num = 0
         self.window_size = 5
         self.send_window = []
+        self.send_window_lock = threading.Lock()
         self.receive_window = [None] * self.window_size
         self.payload_size = 1013
         self.max_seq_num = math.pow(2, 32)
+        self.max_time = 1
 
     def start_listening(self, port):
         self.port = port
@@ -44,6 +47,7 @@ class Tcp:
                 self.send_syn_ack(p)
                 threading.Thread(target=self.message_write_worker, daemon=True).start()
                 threading.Thread(target=self.message_read_worker, daemon=True).start()
+                threading.Thread(target=self.timer_worker, daemon=True).start()
 
     def send(self, peer_addr, peer_port, message):
         if self.connection_status == ConnectionStatus.Closed:
@@ -55,6 +59,7 @@ class Tcp:
                 self.connection_status = ConnectionStatus.Open
                 threading.Thread(target=self.message_write_worker, daemon=True).start()
                 threading.Thread(target=self.message_read_worker, daemon=True).start()
+                threading.Thread(target=self.timer_worker, daemon=True).start()
         self.messages_to_send.append(message)
 
     def message_write_worker(self):
@@ -63,7 +68,6 @@ class Tcp:
                 current_message = self.messages_to_send.pop()
                 while len(current_message) > 0:
                     while len(self.send_window) < self.window_size and len(current_message) > 0:
-                        # todo create timer for timeout of ack
                         to_send = current_message[:self.payload_size]
                         current_message = current_message[self.payload_size:]
                         p = Packet(packet_type=PacketType.DATA.value,
@@ -73,19 +77,38 @@ class Tcp:
                                    payload=to_send.encode("utf-8"))
                         # store the packet in-case we have to send it again
                         self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
-                        self.send_window.append(p)
+                        packet_and_timer = {'packet': p, 'timer': time.time()}
+                        self.send_window.append(packet_and_timer)
                         self.send_packet(p)
+
+    def timer_worker(self):
+        while self.connection_status == ConnectionStatus.Open:
+            self.send_window_lock.acquire(True)
+            for packet_and_timer in self.send_window:
+                if packet_and_timer is None:
+                    continue
+
+                packet = packet_and_timer['packet']
+                timer = packet_and_timer['timer']
+                now = time.time()
+                elapsed = now - timer
+
+                if elapsed >= self.max_time:
+                    packet_and_timer['timer'] = time.time()
+                    self.send_packet(packet)
+            self.send_window_lock.release()
 
     def message_read_worker(self):
         while self.connection_status == ConnectionStatus.Open:
-            # todo if ACK in stop timer and move window if necessary
             data = self.connection.recvfrom(1024)
             p = Packet.from_bytes(data[0])
 
             print(p)
 
             if p.packet_type == PacketType.ACK.value:
+                self.send_window_lock.acquire(True)
                 self.handle_ack(p)
+                self.send_window_lock.release()
             elif p.packet_type == PacketType.NAK.value:
                 self.handle_nack(p)
             elif p.packet_type == PacketType.DATA.value:
@@ -95,7 +118,11 @@ class Tcp:
         print('Handle ACK')
 
         for i in range(len(self.send_window)):
-            if p.seq_num == self.send_window[i].seq_num:
+            packet_and_timer = self.send_window[i]
+            if packet_and_timer is None:
+                continue
+
+            if p.seq_num == packet_and_timer['packet'].seq_num:
                 self.send_window[i] = None
                 break
             elif i == len(self.send_window)-1:
@@ -166,7 +193,7 @@ class Tcp:
         self.connection.sendto(b, (self.router_addr, self.router_port))
         # print('Send "{}" to router'.format(p.payload))
 
-    def wait_for_response(self, timeout=500):
+    def wait_for_response(self, timeout=5):
         try:
             self.connection.settimeout(timeout)
             # print('Waiting for a response')
@@ -175,6 +202,7 @@ class Tcp:
             # print('Router: ', sender)
             # print('Packet: ', p)
             # print('Payload: ' + p.payload.decode("utf-8"))
+            self.connection.settimeout(None)
             return p
         except socket.timeout:
             print('No response after {}s'.format(timeout))
