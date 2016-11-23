@@ -50,7 +50,7 @@ class Tcp:
             bytes_left = number_of_bytes - len(message)
             if len(current_message) > bytes_left:
                 message.extend(current_message[:bytes_left])
-                self.messages_received[0] = message[bytes_left:]
+                self.messages_received[0] = current_message[bytes_left:]
             else:
                 message.extend(current_message)
                 self.messages_received.pop(0)
