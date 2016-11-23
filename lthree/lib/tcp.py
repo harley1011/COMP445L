@@ -37,6 +37,26 @@ class Tcp:
         self.port = port
         threading.Thread(target=self.listen_for_connections, daemon=True).start()
 
+    def recv_from(self, number_of_bytes):
+        message = bytearray()
+        self.send_window_lock.acquire(True)
+
+        # block while we don't have any message
+        while len(self.messages_received) == 0:
+            pass
+
+        while len(message) < number_of_bytes and len(self.messages_received) > 0:
+            current_message = self.messages_received[0]
+            bytes_left = number_of_bytes - len(message)
+            if len(current_message) > bytes_left:
+                message.extend(current_message[:bytes_left])
+                self.messages_received[0] = message[bytes_left:]
+            else:
+                message.extend(current_message)
+                self.messages_received.pop(0)
+        self.send_window_lock.release()
+        return bytes(message)
+
     def listen_for_connections(self):
         if self.connection_status == ConnectionStatus.Closed:
             self.connection_status = ConnectionStatus.Listening
