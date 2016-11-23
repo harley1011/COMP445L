@@ -1,8 +1,7 @@
 import socket
 import threading
 import datetime
-from time import sleep
-import random
+import lthree.lib.tcp as tcp
 
 class HTTPServer(object):
     def __init__(self, queue):
@@ -24,13 +23,13 @@ class HTTPServer(object):
         finally:
             self.listener.close()
 
-        conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        conn = tcp.Tcp('localhost', 3000)
         try:
-            conn.bind(('', port))
             print('Echo server is listening at', port)
             while True:
-                data, sender = conn.recvfrom(1024)
-                handle_client(conn, data, sender)
+                conn.start_listening(port)
+                data = conn.recv_from(1024)
+                threading.Thread(target=self.handle_client, args=(conn, addr, self.queue)).start()
 
         finally:
             conn.close()

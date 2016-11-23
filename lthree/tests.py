@@ -28,8 +28,9 @@ class TestHttp(unittest.TestCase):
 
         print(tcp_listener.messages_received)
         result = tcp_listener.recv_from(100)
-        print(result.decode())
+        print(len(result.decode()))
 
+        self.assertEquals(len(result.decode(100)), 100)
         result = tcp_listener.recv_from(100)
         print(result)
 
