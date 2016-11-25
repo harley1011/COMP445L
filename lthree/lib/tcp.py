@@ -32,7 +32,7 @@ class Tcp:
         self.max_seq_num = math.pow(2, 32)
         self.window_size = 5
         self.receive_window = [None] * self.window_size
-        self.max_time = 1
+        self.max_time = 0.5
 
     def start_listening(self, port):
         self.port = port
@@ -179,6 +179,7 @@ class Tcp:
                 self.send_window[i] = None
                 break
             elif i == len(self.send_window)-1:
+                self.send_window_lock.release()
                 return
 
         self.evaluate_send_window()

@@ -26,7 +26,7 @@ class TestHttp(unittest.TestCase):
 
         conn, addr = tcp_listener.accept()
 
-        time.sleep(10)
+        time.sleep(20)
 
         print(conn.send_window)
         print(conn.receive_window)
