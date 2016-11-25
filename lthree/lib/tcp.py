@@ -125,10 +125,9 @@ class Tcp:
         while self.connection_status != ConnectionStatus.Closed:
             data, addr = self.connection.recvfrom(1024)
             p = Packet.from_bytes(data)
+
             if self.connection_status != ConnectionStatus.Listening and self.peer_port != p.peer_port:
                 self.peer_port = p.peer_port
-
-            # print(p)
 
             if p.packet_type == PacketType.SYN.value:
                 self.handle_syn(p, addr)
@@ -156,14 +155,25 @@ class Tcp:
 
         tcp = Tcp(self.router_addr, self.router_port, conn)
         tcp.connection_status = ConnectionStatus.Handshake
+        tcp.peer_ip = p.peer_ip_addr
+        tcp.peer_port = p.peer_port
+        tcp.rec_seq_num = (p.seq_num+1) % (tcp.max_seq_num + 1)
+        tcp.send_seq_num = (tcp.send_seq_num + 1) % (tcp.max_seq_num + 1)
         tcp.start_protocol()
-        tcp.send_syn_ack(p)
+
+
+        self.send_syn_ack(p, tcp.connection.getsockname()[1])
+        while tcp.connection_status != ConnectionStatus.Open:
+            pass
+
+        self.handle_ack(p)
 
         return tcp, addr
 
     def handle_syn_ack(self, p):
         # print('Handle SYN ACK')
         self.connection_status = ConnectionStatus.Open
+        self.peer_port = int(p.payload.decode("utf-8"))
         self.handle_ack(p)
 
     def handle_ack(self, p):
@@ -216,12 +226,19 @@ class Tcp:
             self.receive_window.append(None)
             self.rec_seq_num = (self.rec_seq_num + 1) % (self.max_seq_num + 1)
 
-    def send_syn_ack(self, p):
-        p.payload = ''
+    def send_syn_ack(self, p, port):
+        p.payload = str(port).encode("utf-8")
         p.packet_type = PacketType.SYN_ACK.value
         self.peer_ip = p.peer_ip_addr
         self.peer_port = p.peer_port
+
         self.rec_seq_num = (p.seq_num+1) % (self.max_seq_num + 1)
+        self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
+        packet_and_timer = {'packet': p, 'timer': time.time()}
+        self.send_window_lock.acquire(True)
+        self.send_window.append(packet_and_timer)
+        self.send_window_lock.release()
+
         self.send_packet(p)
 
     def send_syn(self):
