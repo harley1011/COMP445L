@@ -129,6 +129,7 @@ class HttpRequest(object):
             send_body = body.encode()
         except:
             send_body = body
+        self.connection.send('localhost', self.connection.peer_port, send_body)
         if verbose:
             print('\r\nSending response to client ', self.request_addr)
             print(header)
@@ -136,8 +137,7 @@ class HttpRequest(object):
             # sleep(random.randrange(10))
             print('\r\nClosing connection to client {} now...'.format(self.request_addr))
 
-        self.connection.send('localhost', self.connection.peer_port, send_body)
-        self.connection.close()
+        #self.connection.close()
 
 
 class HttpResponse(object):

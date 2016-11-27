@@ -78,6 +78,7 @@ class HttpConnection(object):
         try:
             while True:
                 data = self.tcp_socket.recv_from(4096)
+                print(data)
                 if not data:
                     break
                 elif data.find(b'\r\n\r\n') != -1:

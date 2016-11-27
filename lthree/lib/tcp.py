@@ -28,6 +28,7 @@ class Tcp:
         self.rec_seq_num = 0
         self.send_window = []
         self.send_window_lock = threading.Lock()
+        self.message_queue_lock = threading.Lock()
         self.payload_size = 1013
         self.max_seq_num = math.pow(2, 32)
         self.window_size = 5
@@ -78,19 +79,24 @@ class Tcp:
             self.send_syn()
             self.connection_status = ConnectionStatus.Handshake
             self.start_protocol()
+        self.message_queue_lock.acquire(True)
         self.messages_to_send.append(message)
+        self.message_queue_lock.release()
 
     def message_write_worker(self):
         while self.connection_status == ConnectionStatus.Listening or self.connection_status == ConnectionStatus.Handshake:
             pass
 
         while self.connection_status == ConnectionStatus.Open:
+            self.message_queue_lock.acquire(True)
             if len(self.messages_to_send) > 0:
-                current_message = self.messages_to_send.pop()
+                current_message = self.messages_to_send.pop(0)
+                self.message_queue_lock.release()
                 while len(current_message) > 0:
                     self.send_window_lock.acquire(True)
                     while len(self.send_window) < self.window_size and len(current_message) > 0:
                         to_send = current_message[:self.payload_size]
+                        print("Sending" + str(to_send))
                         current_message = current_message[self.payload_size:]
                         p = Packet(packet_type=PacketType.DATA.value,
                                    seq_num=self.send_seq_num,
@@ -103,11 +109,14 @@ class Tcp:
                         self.send_window.append(packet_and_timer)
                         self.send_packet(p)
                     self.send_window_lock.release()
+            else:
+                self.message_queue_lock.release()
 
     def timer_worker(self):
         while self.connection_status != ConnectionStatus.Closed:
             self.send_window_lock.acquire(True)
-            for packet_and_timer in self.send_window:
+            for i in range(len(self.send_window)):
+                packet_and_timer = self.send_window[i]
                 if packet_and_timer is None:
                     continue
 
@@ -116,10 +125,17 @@ class Tcp:
                 now = time.time()
                 elapsed = now - timer
 
-                if elapsed >= self.max_time:
+                try:
+                    packet_and_timer['ttl'] -= 1
+                except:
+                    packet_and_timer['ttl'] = 5
+
+                if packet_and_timer['ttl'] == 0:
+                    self.send_window[i] = None
+                elif elapsed >= self.max_time:
+                    print("Resending")
                     packet_and_timer['timer'] = time.time()
                     self.send_packet(p)
-
             self.send_window_lock.release()
 
     def message_read_worker(self):
