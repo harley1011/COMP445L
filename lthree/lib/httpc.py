@@ -1,5 +1,4 @@
-import socket
-import lthree.lib.tcp as tcp
+import lib.tcp as tcp
 
 
 class HttpConnection(object):

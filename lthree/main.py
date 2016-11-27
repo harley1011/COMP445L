@@ -1,11 +1,13 @@
-import sys
 import getopt
-import re
-import lib.detailedusage as detailedusage
-import lib.httpc as httpc
 import json
+import re
+import sys
 import threading
+
 from urllib.parse import urlparse
+
+import lib.clientdetailedusage as detailedusage
+import lib.httpc as httpc
 
 
 def main(argv):
