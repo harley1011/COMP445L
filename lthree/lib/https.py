@@ -12,9 +12,9 @@ class HTTPServer(object):
         self.verbose = verbose
         try:
             self.listener = tcp.Tcp(host, 3000)
-            self.listener.start_listening(5666)
+            self.listener.start_listening(port)
             if self.verbose:
-                print('Server is listening on port ', port)
+                print('Server is listening on port', port)
             while True:
                 conn, addr = self.listener.accept()
                 threading.Thread(target=self.handle_client, args=(conn, addr, self.queue)).start()

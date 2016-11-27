@@ -10,3 +10,7 @@ MacOs
 TESTING HANDSHAKE
 
 python3 -m unittest tests
+
+GET Directory List Example
+server  -->  python3 lthree/server.py -v -p 5666
+client  -->  python3 lthree/main.py get 127.0.0.1
