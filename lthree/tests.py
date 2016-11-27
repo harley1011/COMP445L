@@ -25,8 +25,13 @@ class TestHttp(unittest.TestCase):
         tcp_sender.send('localhost', 5666, body)
 
         conn, addr = tcp_listener.accept()
+        conn.send('localhost', conn.peer_port, body)
 
-        time.sleep(20)
+        time.sleep(70)
+
+        # conn.send('localhost', conn.peer_port, body)
+
+        # time.sleep(25)
 
         print(conn.send_window)
         print(conn.receive_window)
@@ -34,11 +39,16 @@ class TestHttp(unittest.TestCase):
         print(tcp_sender.receive_window)
 
         # print(conn.messages_received)
-        result = conn.recv_from(100)
-        print(len(result.decode()))
+        # result = conn.recv_from(100)
+        # print(len(result.decode()))
 
         # self.assertEquals(len(result.decode(100)), 100)
         result = conn.recv_from(100)
+        print(result)
+
+        print('------------')
+
+        result = tcp_sender.recv_from(100)
         print(result)
 
         self.assertEquals(conn.connection_status, connection_status.ConnectionStatus.Open)

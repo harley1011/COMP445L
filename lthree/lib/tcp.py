@@ -172,6 +172,7 @@ class Tcp:
 
     def handle_syn_ack(self, p):
         # print('Handle SYN ACK')
+        self.rec_seq_num = (self.rec_seq_num + 1) % (self.max_seq_num + 1)
         self.connection_status = ConnectionStatus.Open
         self.peer_port = int(p.payload.decode("utf-8"))
         self.handle_ack(p)
