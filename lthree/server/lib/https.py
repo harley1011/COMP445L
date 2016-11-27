@@ -1,4 +1,3 @@
-import socket
 import threading
 import datetime
 import lthree.lib.tcp as tcp
@@ -11,28 +10,17 @@ class HTTPServer(object):
 
     def run_server(self, host, port, verbose):
         self.verbose = verbose
-        self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.listener.bind((host, port))
-            self.listener.listen(5)
+            self.listener = tcp.Tcp(host, 3000)
+            self.listener.start_listening(5666)
             if self.verbose:
                 print('Server is listening on port ', port)
             while True:
                 conn, addr = self.listener.accept()
                 threading.Thread(target=self.handle_client, args=(conn, addr, self.queue)).start()
+
         finally:
             self.listener.close()
-
-        conn = tcp.Tcp('localhost', 3000)
-        try:
-            print('Echo server is listening at', port)
-            while True:
-                conn.start_listening(port)
-                data = conn.recv_from(1024)
-                threading.Thread(target=self.handle_client, args=(conn, addr, self.queue)).start()
-
-        finally:
-            conn.close()
 
     def stop_server(self):
         self.listener.close()
@@ -44,7 +32,7 @@ class HTTPServer(object):
         request = bytearray()
         try:
             while True:
-                data = conn.recv(4096)
+                data = conn.recv_from(4096)
                 if not data:
                     break
                 elif data.find(b'\r\n\r\n') != -1:
@@ -66,7 +54,7 @@ class HTTPServer(object):
 
     @staticmethod
     def handle_response_to_client(http_request):
-        http_request.connection.sendall('response here')
+        http_request.connection.send('response here')
         http_request.connection.close()
 
 
@@ -136,7 +124,7 @@ class HttpRequest(object):
         return self.headers['Content-Length'] == len(self.message_body)
 
     def reply_to_request(self, header, body, verbose):
-        self.connection.sendall(header.encode())
+        self.connection.send(header.encode())
         try:
             send_body = body.encode()
         except:
@@ -148,8 +136,7 @@ class HttpRequest(object):
             # sleep(random.randrange(10))
             print('\r\nClosing connection to client {} now...'.format(self.request_addr))
 
-        self.connection.sendall(send_body)
-        self.connection.shutdown(socket.SHUT_RDWR)
+        self.connection.send(send_body)
         self.connection.close()
 
 

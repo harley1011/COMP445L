@@ -266,3 +266,6 @@ class Tcp:
         b = p.to_bytes()
         self.connection.sendto(b, (self.router_addr, self.router_port))
         # print('Send "{}" to router'.format(p.payload))
+
+    def close(self):
+        self.connection_status = ConnectionStatus.Closed

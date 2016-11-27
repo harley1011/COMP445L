@@ -1,4 +1,5 @@
 import socket
+import lthree.lib.tcp as tcp
 
 
 class HttpConnection(object):
@@ -17,8 +18,7 @@ class HttpConnection(object):
             self.port = port
         else:
             self.port = 80
-        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_socket.connect((host, port))
+        self.tcp_socket = tcp.Tcp('localhost', 3000)
 
     def request(self, method, path, body=None, headers={}, agent=None):
         if method != 'GET' and method != 'POST':
@@ -74,11 +74,11 @@ class HttpConnection(object):
         self.tcp_socket.close()
 
     def tcp_send(self, message):
-        self.tcp_socket.sendall(message.encode())
+        self.tcp_socket.send(self.host, 5666, message.encode())
         response = bytearray()
         try:
             while True:
-                data = self.tcp_socket.recv(4096)
+                data = self.tcp_socket.recv_from(4096)
                 if not data:
                     break
                 else:
