@@ -14,4 +14,5 @@ server  -->  python ltwo/server.py -v -d ./ltwo/testfiles
 client  -->  python lone/main.py post -h Content-Type:application/json --f ltwo/testfiles/body1.txt 127.0.0.1/test_file.txt
 
 
-python ltwo/server.py -v -d ./ltwo/testfiles
+python3 ltwo/server.py -v -d ./ltwo/testfiles
+python3 ltwo/main.py
