@@ -82,7 +82,7 @@ def directory_list(request, directory):
         if isfile(join(directory, file)):
             files.append(file)
 
-    return lthree.server.https.HttpResponse(request.http_version, '200', 'OK', 'application/json', json.dumps(files))
+    return https.HttpResponse(request.http_version, '200', 'OK', 'application/json', json.dumps(files))
 
 
 def file_content(request, directory):
@@ -99,7 +99,7 @@ def file_content(request, directory):
     except IOError:
         return handle_file_error(request, directory)
 
-    return lthree.server.https.HttpResponse(request.http_version, '200', 'OK', get_file_type(request.path), content)
+    return https.HttpResponse(request.http_version, '200', 'OK', get_file_type(request.path), content)
 
 
 def file_set_content(request, directory):
@@ -117,15 +117,15 @@ def file_set_content(request, directory):
 
     file.write(request.message_body.encode())
 
-    return lthree.server.https.HttpResponse(request.http_version, '200', 'OK', 'text/plain', 'SUCCESS')
+    return https.HttpResponse(request.http_version, '200', 'OK', 'text/plain', 'SUCCESS')
 
 
 def handle_error(request, directory):
-    return lthree.server.https.HttpResponse(request.http_version, '400', 'Bad Request', 'text/plain', 'Not A File')
+    return https.HttpResponse(request.http_version, '400', 'Bad Request', 'text/plain', 'Not A File')
 
 
 def handle_file_error(request, directory):
-    return lthree.server.https.HttpResponse(request.http_version, '404', 'Not Found', 'text/plain', 'Not A File')
+    return https.HttpResponse(request.http_version, '404', 'Not Found', 'text/plain', 'Not A File')
 
 
 def valid_path(path):

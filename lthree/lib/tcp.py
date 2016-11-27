@@ -45,11 +45,12 @@ class Tcp:
 
     def recv_from(self, number_of_bytes):
         message = bytearray()
-        self.send_window_lock.acquire(True)
 
         # block while we don't have any message
         while len(self.messages_received) == 0:
             pass
+
+        self.send_window_lock.acquire(True)
 
         while len(message) < number_of_bytes and len(self.messages_received) > 0:
             current_message = self.messages_received[0]
@@ -95,7 +96,7 @@ class Tcp:
                                    seq_num=self.send_seq_num,
                                    peer_ip_addr=self.peer_ip,
                                    peer_port=self.peer_port,
-                                   payload=to_send.encode("utf-8"))
+                                   payload=to_send)
                         # store the packet in-case we have to send it again
                         self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
                         packet_and_timer = {'packet': p, 'timer': time.time()}
@@ -161,7 +162,6 @@ class Tcp:
         tcp.send_seq_num = (tcp.send_seq_num + 1) % (tcp.max_seq_num + 1)
         tcp.start_protocol()
 
-
         self.send_syn_ack(p, tcp.connection.getsockname()[1])
         while tcp.connection_status != ConnectionStatus.Open:
             pass
@@ -173,8 +173,8 @@ class Tcp:
     def handle_syn_ack(self, p):
         # print('Handle SYN ACK')
         self.rec_seq_num = (self.rec_seq_num + 1) % (self.max_seq_num + 1)
-        self.connection_status = ConnectionStatus.Open
         self.peer_port = int(p.payload.decode("utf-8"))
+        self.connection_status = ConnectionStatus.Open
         self.handle_ack(p)
 
     def handle_ack(self, p):

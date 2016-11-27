@@ -17,7 +17,7 @@ class HttpConnection(object):
             self.port = port
         else:
             self.port = 80
-        self.tcp_socket = tcp.Tcp('localhost', 3000)
+        self.tcp_socket = tcp.Tcp('127.0.0.1', 3000)
 
     def request(self, method, path, body=None, headers={}, agent=None):
         if method != 'GET' and method != 'POST':

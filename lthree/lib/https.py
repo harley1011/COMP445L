@@ -54,7 +54,7 @@ class HTTPServer(object):
 
     @staticmethod
     def handle_response_to_client(http_request):
-        http_request.connection.send('response here')
+        http_request.connection.send('localhost', http_request.connection.peer_port, 'response here')
         http_request.connection.close()
 
 
@@ -124,7 +124,7 @@ class HttpRequest(object):
         return self.headers['Content-Length'] == len(self.message_body)
 
     def reply_to_request(self, header, body, verbose):
-        self.connection.send(header.encode())
+        self.connection.send('localhost', self.connection.peer_port, header.encode())
         try:
             send_body = body.encode()
         except:
@@ -136,7 +136,7 @@ class HttpRequest(object):
             # sleep(random.randrange(10))
             print('\r\nClosing connection to client {} now...'.format(self.request_addr))
 
-        self.connection.send(send_body)
+        self.connection.send('localhost', self.connection.peer_port, send_body)
         self.connection.close()
 
 
