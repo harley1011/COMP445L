@@ -12,10 +12,12 @@ TESTING HANDSHAKE
 python3 -m unittest tests
 
 GET Directory List Example
-server  -->  python3 lthree/server.py -v -p 5666
+server  -->  python3 lthree/server.py -v -p 5666 -d ./lthree/testfiles
 client  -->  python3 lthree/main.py get 127.0.0.1
 
 
-python3 lthree/server.py -v -p 5666 -d ./lthree/testfiles
-
+GET
 python3 lthree/main.py get 127.0.0.1/body1.txt
+
+POST
+python3 lthree/main.py post -h Content-Type:application/json --f lthree/testfiles/body1.txt 127.0.0.1/test_file.txt
