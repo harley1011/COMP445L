@@ -33,7 +33,7 @@ class Tcp:
         self.max_seq_num = math.pow(2, 32)
         self.window_size = 10
         self.receive_window = [None] * self.window_size
-        self.max_time = 5
+        self.max_time = 2
         self.verbose = True
         self.current_peer_port_handshake = 0
 
