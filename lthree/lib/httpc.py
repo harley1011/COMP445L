@@ -109,38 +109,6 @@ class HttpResponse(object):
         self.reason_phrase = ''
         self.response_index = 0
 
-    # def __init__(self, response):
-    #     self.raw_response = response
-    #     response = response.split(b'\r\n\r\n', 1)
-    #     self.response_details = response[0].decode('utf-8')
-    #     response_header = response[0].decode('utf-8').split('\r\n', 1)
-    #     response_body = response[1]
-    #
-    #     status_line = response_header.pop(0).split(' ')
-    #     response_header = response_header[0].split('\r\n')
-    #     self.http_version = status_line[0]
-    #     self.status_code = int(status_line[1])
-    #     self.reason_phrase = status_line[2]
-    #     self.headers = {}
-    #     self.response_index = 0
-    #
-    #     while len(response_header) > 0:
-    #         header = response_header.pop(0)
-    #
-    #         if header == '':
-    #             break
-    #
-    #         header = header.split(": ", 1)
-    #         self.headers[header[0]] = header[1]
-    #
-    #     try:
-    #         decode_type = 'utf-8'
-    #         if 'Content-Type' in self.headers and 'charset=' in self.headers['Content-Type']:
-    #             decode_type = self.headers['Content-Type'].split('charset=')[1]
-    #         self.body = response_body.decode(decode_type)
-    #     except:
-    #         self.body = response_body
-
     def add_content(self, request):
         body = request[self.request_index:]
         self.response_index = len(request)

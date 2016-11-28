@@ -31,10 +31,11 @@ class Tcp:
         self.message_queue_lock = threading.Lock()
         self.payload_size = 1013
         self.max_seq_num = math.pow(2, 32)
-        self.window_size = 5
+        self.window_size = 10
         self.receive_window = [None] * self.window_size
-        self.max_time = 2
+        self.max_time = 5
         self.verbose = True
+        self.current_peer_port_handshake = 0
 
     def start_listening(self, port):
         self.port = port
@@ -44,10 +45,11 @@ class Tcp:
         if self.verbose:
             print(message)
 
-    def start_protocol(self):
+    def start_protocol(self, start_timer=True):
         threading.Thread(target=self.message_write_worker, daemon=True).start()
         threading.Thread(target=self.message_read_worker, daemon=True).start()
-        threading.Thread(target=self.timer_worker, daemon=True).start()
+        if start_timer:
+            threading.Thread(target=self.timer_worker, daemon=True).start()
 
     def recv_from(self, number_of_bytes):
         message = bytearray()
@@ -135,20 +137,22 @@ class Tcp:
                     try:
                         packet_and_timer['ttl'] -= 1
                     except:
-                        packet_and_timer['ttl'] = 50
+                        packet_and_timer['ttl'] = 5
 
                     if packet_and_timer['ttl'] == 0:
+                        self.log('Packet {} ttl reached, removing packet from window'.format(p.seq_num))
                         self.send_window[i] = None
-                    self.log('Re-sending packet {} to peer port {}:'.format(p.seq_num, p.peer_port))
-                    packet_and_timer['timer'] = time.time()
-                    self.send_packet(p)
+                    else:
+                        self.log('Re-sending packet {} to peer port {}:'.format(p.seq_num, p.peer_port))
+                        packet_and_timer['timer'] = time.time()
+                        self.send_packet(p)
             self.send_window_lock.release()
 
     def message_read_worker(self):
         while self.connection_status != ConnectionStatus.Closed:
             data, addr = self.connection.recvfrom(1024)
             p = Packet.from_bytes(data)
-
+            self.log("Packet {} type {} from port {} received".format(p.seq_num, p.packet_type, p.peer_port))
             if self.connection_status != ConnectionStatus.Listening and self.peer_port != p.peer_port:
                 self.peer_port = p.peer_port
 
@@ -167,15 +171,22 @@ class Tcp:
 
     def handle_syn(self, p, addr):
         self.log("Handle SYN from port {}".format(p.peer_port))
-        self.connection_requests.put({'packet': p, 'address': addr})
+
+        if self.current_peer_port_handshake != p.peer_port:
+            self.log("Peer port {} added to queue".format(p.peer_port))
+            self.connection_requests.put({'packet': p, 'address': addr})
+        else:
+            self.log("Peer port {} already in queue".format(p.peer_port))
 
     def accept(self):
-        self.log("Accepting TCP connection")
         packet_and_addr = self.connection_requests.get()
+        self.log("Accepting TCP connection")
+
         conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         conn.bind(('', 0))
         p = packet_and_addr['packet']
         addr = packet_and_addr['address']
+        self.current_peer_port_handshake = p.peer_port
 
         tcp = Tcp(self.router_addr, self.router_port, conn)
         tcp.connection_status = ConnectionStatus.Handshake
@@ -190,6 +201,7 @@ class Tcp:
             pass
 
         self.handle_ack(p)
+        self.current_peer_port_handshake = 0
 
         return tcp, addr
 
@@ -278,6 +290,7 @@ class Tcp:
         self.send_packet(p)
 
     def send_ack(self, num):
+        self.log("Sending ACK for seq {}".format(num))
         p = Packet(packet_type=PacketType.ACK.value,
                    seq_num=num,
                    peer_ip_addr=self.peer_ip,
