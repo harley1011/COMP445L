@@ -33,7 +33,7 @@ class Tcp:
         self.max_seq_num = math.pow(2, 32)
         self.window_size = 10
         self.receive_window = [None] * self.window_size
-        self.max_time = 2
+        self.max_time = 4
         self.verbose = True
         self.current_peer_port_handshake = 0
 
@@ -70,6 +70,7 @@ class Tcp:
                 message.extend(current_message)
                 self.messages_received.pop(0)
         self.send_window_lock.release()
+        self.log("Passing: \r\n" + message.decode('utf-8'))
         return bytes(message)
 
     def listen_for_connections(self):
@@ -111,7 +112,11 @@ class Tcp:
                                    peer_port=self.peer_port,
                                    payload=to_send)
                         # store the packet in-case we have to send it again
-                        self.log('Sending packet {} to peer port {}:'.format(p.seq_num, p.peer_port))
+                        try:
+                            self.log("Sending: Packet {} type {} to port {} with msg: \r\n{}".format(p.seq_num, p.packet_type, p.peer_port, p.payload.decode('utf-8')))
+                        except:
+                            self.log("Sending: Packet {} type {} to port {} received".format(p.seq_num, p.packet_type, p.peer_port))
+
                         self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
                         packet_and_timer = {'packet': p, 'timer': time.time()}
                         self.send_window.append(packet_and_timer)
@@ -137,7 +142,7 @@ class Tcp:
                     try:
                         packet_and_timer['ttl'] -= 1
                     except:
-                        packet_and_timer['ttl'] = 5
+                        packet_and_timer['ttl'] = 10
 
                     if packet_and_timer['ttl'] == 0:
                         self.log('Packet {} ttl reached, removing packet from window'.format(p.seq_num))
@@ -152,7 +157,11 @@ class Tcp:
         while self.connection_status != ConnectionStatus.Closed:
             data, addr = self.connection.recvfrom(1024)
             p = Packet.from_bytes(data)
-            self.log("Packet {} type {} from port {} received".format(p.seq_num, p.packet_type, p.peer_port))
+            try:
+                self.log("Received: Packet {} type {} from port {} with msg: \r\n{}".format(p.seq_num, p.packet_type, p.peer_port, p.payload.decode('utf-8')))
+            except:
+                self.log("Received: Packet {} type {} from port {} received".format(p.seq_num, p.packet_type, p.peer_port))
+
             if self.connection_status != ConnectionStatus.Listening and self.peer_port != p.peer_port:
                 self.peer_port = p.peer_port
 
@@ -234,14 +243,13 @@ class Tcp:
         self.log('Handle NAK')
 
     def handle_data(self, p):
-        self.log('Handle data for packet {}'.format(p.seq_num))
-
+        self.log('Handling data for packet {}'.format(p.seq_num))
         index = p.seq_num - self.rec_seq_num if self.rec_seq_num <= p.seq_num else \
             (1 + self.max_seq_num - self.rec_seq_num) + p.seq_num
         index = int(index)
         if index < self.window_size:
             self.receive_window[index] = p
-
+            self.log("Storing in window at index {}: {}".format(index, p.payload))
         self.evaluate_rec_window()
         self.send_ack(p.seq_num)
 
@@ -256,8 +264,9 @@ class Tcp:
         while True:
             if self.receive_window[0] is None:
                 return
-
-            self.messages_received.append(self.receive_window.pop(0).payload)
+            d = self.receive_window.pop(0).payload
+            self.log("Adding {} to message queue".format(d))
+            self.messages_received.append(d)
             self.receive_window.append(None)
             self.rec_seq_num = (self.rec_seq_num + 1) % (self.max_seq_num + 1)
 

@@ -49,10 +49,13 @@ class HttpConnection(object):
             lines = self.request_message.split('\r\n')
             for line in lines:
                 print('> {}\n'.format(line), end="")
-            lines = http_response.response_details.split('\r\n')
-            for line in lines:
-                print('< {}\n'.format(line), end="")
-            print('<')
+            try:
+                lines = http_response.response_details.split('\r\n')
+                for line in lines:
+                    print('< {}\n'.format(line), end="")
+                print('<')
+            except:
+                print(http_response.response_details)
 
     @staticmethod
     def format_headers(headers):
@@ -78,7 +81,6 @@ class HttpConnection(object):
         try:
             while True:
                 data = self.tcp_socket.recv_from(4096)
-                print(data)
                 if not data:
                     break
                 elif data.find(b'\r\n\r\n') != -1:
@@ -90,7 +92,7 @@ class HttpConnection(object):
                 else:
                     response.extend(data)
                     more_content = http_response.add_content(response)
-                    if not more_content:
+                    if more_content:
                         break
         finally:
             return http_response
@@ -110,7 +112,7 @@ class HttpResponse(object):
         self.response_index = 0
 
     def add_content(self, request):
-        body = request[self.request_index:]
+        body = request[self.response_index:]
         self.response_index = len(request)
         try:
             decode_type = 'utf-8'
@@ -120,7 +122,7 @@ class HttpResponse(object):
         except:
             self.body += body
 
-        return self.headers['Content-Length'] == len(self.body)
+        return self.headers['Content-Length'] <= len(self.body)
 
     def parse_request(self, response):
         self.raw_response = response
