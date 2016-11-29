@@ -159,7 +159,7 @@ class Tcp:
                     try:
                         packet_and_timer['ttl'] -= 1
                     except:
-                        packet_and_timer['ttl'] = 10
+                        packet_and_timer['ttl'] = 20
 
                     if packet_and_timer['ttl'] == 0:
                         self.log('Packet {} ttl reached, removing packet from window'.format(p.seq_num))
