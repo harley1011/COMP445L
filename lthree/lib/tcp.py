@@ -182,10 +182,10 @@ class Tcp:
                     self.log('Message read worker terminating for tcp with peer poor {}'.format(self.peer_port))
                     return
                 else:
-                    pass
+                    continue
             try:
                 if data == '':
-                    pass
+                    continue
                 p = Packet.from_bytes(data)
                 try:
                     self.log("Received: Packet {} type {} from port {} with msg: \r\n{}".format(p.seq_num, p.packet_type, p.peer_port, p.payload.decode('utf-8')))
