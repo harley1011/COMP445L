@@ -136,9 +136,9 @@ class Tcp:
                         except:
                             if self.connection_status == ConnectionStatus.Terminated:
                                 self.log('Message write worker terminating for tcp with peer poor {}'.format(self.peer_port))
+                                self.send_window_lock.release()
                                 return
-                        finally:
-                            self.send_window_lock.release()
+                    self.send_window_lock.release()
             else:
                 self.message_queue_lock.release()
 
