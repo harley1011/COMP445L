@@ -89,7 +89,7 @@ class TestHttp(unittest.TestCase):
             result = conn.recv_from(read_bytes_num)
             count += read_bytes_num
             buf.extend(result)
-
+        self.assertEquals(buf, body.encode())
         self.assertEquals(conn.connection_status, connection_status.ConnectionStatus.Open)
         self.assertEquals(tcp_sender.connection_status, connection_status.ConnectionStatus.Open)
 
