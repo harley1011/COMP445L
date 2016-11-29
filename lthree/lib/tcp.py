@@ -267,6 +267,8 @@ class Tcp:
 
     def handle_syn_ack(self, p):
         self.log('Handle SYN ACK from client port {}'.format(p.peer_port))
+        if self.connection_status is ConnectionStatus.Open:
+            return
         self.rec_seq_num = (self.rec_seq_num + 1) % (self.max_seq_num + 1)
         self.peer_port = int(p.payload.decode("utf-8"))
         self.connection_status = ConnectionStatus.Open
@@ -298,6 +300,7 @@ class Tcp:
         index = p.seq_num - self.rec_seq_num if self.rec_seq_num <= p.seq_num else \
             (1 + self.max_seq_num - self.rec_seq_num) + p.seq_num
         index = int(index)
+
         if index < self.window_size:
             self.receive_window[index] = p
             self.log("Storing in window at index {}: {}".format(index, p.payload))
@@ -315,6 +318,7 @@ class Tcp:
         while True:
             if self.receive_window[0] is None:
                 return
+
             d = self.receive_window.pop(0).payload
             self.log("Adding {} to message queue".format(d))
             self.messages_received.append(d)
