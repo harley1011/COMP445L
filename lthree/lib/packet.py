@@ -26,7 +26,10 @@ class Packet:
         buf.extend(self.peer_ip_addr.packed)
         buf.extend(self.peer_port.to_bytes(2, byteorder='big'))
 
-        buf.extend(self.payload)
+        try:
+            buf.extend(self.payload)
+        except:
+            print("Error can extend {}".format(self.payload))
 
         return buf
 

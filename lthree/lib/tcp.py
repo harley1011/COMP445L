@@ -16,6 +16,18 @@ class Tcp:
         self.router_addr = router_addr
         self.router_port = router_port
         self.connection_requests = queue.Queue()
+
+        # Kinda weird but basically a tcp that is listening
+        # for connections will store the connections it opens while those created by it will store the
+        # listener connection that created it
+        self.tcp_child_connections = {}
+        self.tcp_parent_connection = None
+
+        self.tcp_child_connections_lock = threading.Lock()
+        self.send_window_lock = threading.Lock()
+        self.message_queue_lock = threading.Lock()
+        self.connection_requests_lock = threading.Lock()
+
         self.connection_status = ConnectionStatus.Closed
         self.connection = conn if (conn is not None) else ""
         self.peer_ip = ""
@@ -27,15 +39,13 @@ class Tcp:
         self.send_seq_num = 0
         self.rec_seq_num = 0
         self.send_window = []
-        self.send_window_lock = threading.Lock()
-        self.message_queue_lock = threading.Lock()
+
         self.payload_size = 1013
         self.max_seq_num = math.pow(2, 32)
         self.window_size = 10
         self.receive_window = [None] * self.window_size
         self.max_time = 4
         self.verbose = True
-        self.current_peer_port_handshake = 0
 
     def start_listening(self, port):
         self.port = port
@@ -120,13 +130,20 @@ class Tcp:
                         self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
                         packet_and_timer = {'packet': p, 'timer': time.time()}
                         self.send_window.append(packet_and_timer)
-                        self.send_packet(p)
-                    self.send_window_lock.release()
+                        self.log("Send Window Size: {}".format(len(self.send_window)))
+                        try:
+                            self.send_packet(p)
+                        except:
+                            if self.connection_status == ConnectionStatus.Terminated:
+                                self.log('Message write worker terminating for tcp with peer poor {}'.format(self.peer_port))
+                                return
+                        finally:
+                            self.send_window_lock.release()
             else:
                 self.message_queue_lock.release()
 
     def timer_worker(self):
-        while self.connection_status != ConnectionStatus.Closed:
+        while self.connection_status != ConnectionStatus.Closed and self.connection_status != ConnectionStatus.Terminated:
             self.send_window_lock.acquire(True)
             for i in range(len(self.send_window)):
                 packet_and_timer = self.send_window[i]
@@ -152,11 +169,26 @@ class Tcp:
                         packet_and_timer['timer'] = time.time()
                         self.send_packet(p)
             self.send_window_lock.release()
+        self.log('Timer worker terminating for tcp with peer port {}'.format(self.peer_port))
 
     def message_read_worker(self):
         while self.connection_status != ConnectionStatus.Closed:
-            data, addr = self.connection.recvfrom(1024)
-            p = Packet.from_bytes(data)
+            data = 'something wrong'
+            try:
+                data, addr = self.connection.recvfrom(1024)
+            except:
+                # This allows the thread to die, or else the thread would never end because recvfrom is blocking without a timeout
+                if self.connection_status == ConnectionStatus.Terminated:
+                    self.log('Message read worker terminating for tcp with peer poor {}'.format(self.peer_port))
+                    return
+                else:
+                    pass
+            try:
+                p = Packet.from_bytes(data)
+            except:
+                print("Error can't interpret: {}".format(data))
+                pass
+
             try:
                 self.log("Received: Packet {} type {} from port {} with msg: \r\n{}".format(p.seq_num, p.packet_type, p.peer_port, p.payload.decode('utf-8')))
             except:
@@ -168,6 +200,9 @@ class Tcp:
             if p.packet_type == PacketType.SYN.value:
                 self.handle_syn(p, addr)
             elif p.packet_type == PacketType.SYN_ACK.value:
+                # Check if it's a duplicate message
+                if self.connection_status == ConnectionStatus.Open:
+                    pass
                 self.handle_syn_ack(p)
             elif p.packet_type == PacketType.ACK.value and self.connection_status == ConnectionStatus.Open:
                  self.handle_ack(p)
@@ -179,40 +214,56 @@ class Tcp:
                 self.handle_data(p)
 
     def handle_syn(self, p, addr):
+        self.tcp_child_connections_lock.acquire(True)
         self.log("Handle SYN from port {}".format(p.peer_port))
-
-        if self.current_peer_port_handshake != p.peer_port:
+        if not self.check_if_duplicate_syn(p.peer_ip_addr, p.peer_port):
             self.log("Peer port {} added to queue".format(p.peer_port))
-            self.connection_requests.put({'packet': p, 'address': addr})
+            self.connection_requests.put({'packet': p})
+            self.tcp_child_connections["{}:{}".format(p.peer_ip_addr, p.peer_port)] = "Waiting"
         else:
-            self.log("Peer port {} already in queue".format(p.peer_port))
+            self.log("Peer port {} already open or waiting to open ".format(p.peer_port))
+        self.tcp_child_connections_lock.release()
+
+    def check_if_duplicate_syn(self, peer_ip_addr, peer_port):
+        return '{}:{}'.format(peer_ip_addr, peer_port) in self.tcp_child_connections
 
     def accept(self):
+        # lock here because it's possible we are putting something at the same time we are
+        # getting
+        #self.connection_requests_lock.acquire(True)
         packet_and_addr = self.connection_requests.get()
-        self.log("Accepting TCP connection")
+        #self.connection_requests_lock.release()
+        p = packet_and_addr['packet']
+        self.log("Accept: TCP connection for peer port {}".format(p.peer_port))
 
+        # create new socket for the tcp connection
         conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         conn.bind(('', 0))
-        p = packet_and_addr['packet']
-        addr = packet_and_addr['address']
-        self.current_peer_port_handshake = p.peer_port
+        conn.settimeout(10)
 
         tcp = Tcp(self.router_addr, self.router_port, conn)
+        #store the tcp connection
+        self.tcp_child_connections_lock.acquire(True)
+        self.tcp_child_connections['{}:{}'.format(p.peer_ip_addr, p.peer_port)] = tcp
+        self.tcp_child_connections_lock.release()
         tcp.connection_status = ConnectionStatus.Handshake
         tcp.peer_ip = p.peer_ip_addr
         tcp.peer_port = p.peer_port
         tcp.rec_seq_num = (p.seq_num+1) % (tcp.max_seq_num + 1)
         tcp.send_seq_num = (tcp.send_seq_num + 1) % (tcp.max_seq_num + 1)
         tcp.start_protocol()
+        tcp.tcp_parent_connection = self
 
-        self.send_syn_ack(p, tcp.connection.getsockname()[1])
+        #self.send_syn_ack(p, tcp.connection.getsockname()[1])
+
+        tcp.send_syn_ack(p, tcp.connection.getsockname()[1])
+
         while tcp.connection_status != ConnectionStatus.Open:
             pass
 
-        self.handle_ack(p)
-        self.current_peer_port_handshake = 0
+        tcp.handle_ack(p)
 
-        return tcp, addr
+        return tcp, p.peer_port
 
     def handle_syn_ack(self, p):
         self.log('Handle SYN ACK from client port {}'.format(p.peer_port))
@@ -271,10 +322,11 @@ class Tcp:
             self.rec_seq_num = (self.rec_seq_num + 1) % (self.max_seq_num + 1)
 
     def send_syn_ack(self, p, port):
+
         p.payload = str(port).encode("utf-8")
         p.packet_type = PacketType.SYN_ACK.value
-        self.peer_ip = p.peer_ip_addr
-        self.peer_port = p.peer_port
+        #self.peer_ip = p.peer_ip_addr
+        #self.peer_port = p.peer_port
 
         self.rec_seq_num = (p.seq_num+1) % (self.max_seq_num + 1)
         self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
@@ -312,5 +364,17 @@ class Tcp:
         self.connection.sendto(b, (self.router_addr, self.router_port))
         #self.log('Send "{}" to router'.format(p.payload))
 
+    def remove_tcp_child_connection(self, peer_ip_addr, peer_poor):
+        self.tcp_child_connections_lock.acquire(True)
+        self.log("TCP conn with peer port {} being remove from connection pool".format(peer_poor))
+        self.tcp_child_connections.pop('{}:{}'.format(peer_ip_addr, peer_poor))
+        self.tcp_child_connections_lock.release()
+
     def close(self):
-        self.connection_status = ConnectionStatus.Closed
+        # since we don't have a terminate handshake wait for any possible duplicate packets
+        # in-case our ACKs were dropped or delayed too long
+        #time.sleep(1)
+        self.connection_status = ConnectionStatus.Terminated
+        self.connection.settimeout(0)
+        if self.tcp_parent_connection is not None:
+            self.tcp_parent_connection.remove_tcp_child_connection(self.peer_ip, self.peer_port)
