@@ -376,5 +376,6 @@ class Tcp:
         #time.sleep(1)
         self.connection_status = ConnectionStatus.Terminated
         self.connection.settimeout(0)
+        self.connection.close()
         if self.tcp_parent_connection is not None:
             self.tcp_parent_connection.remove_tcp_child_connection(self.peer_ip, self.peer_port)

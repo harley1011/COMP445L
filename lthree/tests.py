@@ -77,7 +77,7 @@ class TestHttp(unittest.TestCase):
 
         conn, addr = tcp_listener.accept()
 
-        time.sleep(10)
+        time.sleep(40)
 
         count = 0
         buf = bytearray()
@@ -94,6 +94,7 @@ class TestHttp(unittest.TestCase):
         self.assertEquals(tcp_sender.connection_status, connection_status.ConnectionStatus.Open)
 
         conn.close()
+        tcp_listener.close()
 
 
 
