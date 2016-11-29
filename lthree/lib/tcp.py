@@ -251,7 +251,6 @@ class Tcp:
         tcp.peer_ip = p.peer_ip_addr
         tcp.peer_port = p.peer_port
         tcp.rec_seq_num = (p.seq_num+1) % (tcp.max_seq_num + 1)
-        tcp.send_seq_num = (tcp.send_seq_num + 1) % (tcp.max_seq_num + 1)
         tcp.start_protocol()
         tcp.tcp_parent_connection = self
 
