@@ -184,8 +184,6 @@ class Tcp:
                 else:
                     continue
             try:
-                if data == '':
-                    continue
                 p = Packet.from_bytes(data)
                 try:
                     self.log("Received: Packet {} type {} from port {} with msg: \r\n{}".format(p.seq_num, p.packet_type, p.peer_port, p.payload.decode('utf-8')))
@@ -199,8 +197,6 @@ class Tcp:
                     self.handle_syn(p, addr)
                 elif p.packet_type == PacketType.SYN_ACK.value:
                     # Check if it's a duplicate message
-                    if self.connection_status == ConnectionStatus.Open:
-                        pass
                     self.handle_syn_ack(p)
                 elif p.packet_type == PacketType.ACK.value and self.connection_status == ConnectionStatus.Open:
                      self.handle_ack(p)
@@ -212,7 +208,6 @@ class Tcp:
                     self.handle_data(p)
             except Exception:
                 print("Error something went wrong in message_read_worker data is : {}".format(data))
-                pass
 
     def handle_syn(self, p, addr):
         self.tcp_child_connections_lock.acquire(True)
