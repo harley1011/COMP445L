@@ -173,7 +173,7 @@ class Tcp:
 
     def message_read_worker(self):
         while self.connection_status != ConnectionStatus.Closed:
-            data = 'something wrong'
+            data = ''
             try:
                 data, addr = self.connection.recvfrom(1024)
             except:
@@ -184,34 +184,35 @@ class Tcp:
                 else:
                     pass
             try:
-                p = Packet.from_bytes(data)
-            except:
-                print("Error can't interpret: {}".format(data))
-                pass
-
-            try:
-                self.log("Received: Packet {} type {} from port {} with msg: \r\n{}".format(p.seq_num, p.packet_type, p.peer_port, p.payload.decode('utf-8')))
-            except:
-                self.log("Received: Packet {} type {} from port {} received".format(p.seq_num, p.packet_type, p.peer_port))
-
-            if self.connection_status != ConnectionStatus.Listening and self.peer_port != p.peer_port:
-                self.peer_port = p.peer_port
-
-            if p.packet_type == PacketType.SYN.value:
-                self.handle_syn(p, addr)
-            elif p.packet_type == PacketType.SYN_ACK.value:
-                # Check if it's a duplicate message
-                if self.connection_status == ConnectionStatus.Open:
+                if data == '':
                     pass
-                self.handle_syn_ack(p)
-            elif p.packet_type == PacketType.ACK.value and self.connection_status == ConnectionStatus.Open:
-                 self.handle_ack(p)
-            elif p.packet_type == PacketType.NAK.value and self.connection_status == ConnectionStatus.Open:
-                self.handle_nack(p)
-            elif p.packet_type == PacketType.DATA.value and self.connection_status != ConnectionStatus.Listening:
-                if self.connection_status == ConnectionStatus.Handshake:
-                    self.connection_status = ConnectionStatus.Open
-                self.handle_data(p)
+                p = Packet.from_bytes(data)
+                try:
+                    self.log("Received: Packet {} type {} from port {} with msg: \r\n{}".format(p.seq_num, p.packet_type, p.peer_port, p.payload.decode('utf-8')))
+                except:
+                    self.log("Received: Packet {} type {} from port {} received".format(p.seq_num, p.packet_type, p.peer_port))
+
+                if self.connection_status != ConnectionStatus.Listening and self.peer_port != p.peer_port:
+                    self.peer_port = p.peer_port
+
+                if p.packet_type == PacketType.SYN.value:
+                    self.handle_syn(p, addr)
+                elif p.packet_type == PacketType.SYN_ACK.value:
+                    # Check if it's a duplicate message
+                    if self.connection_status == ConnectionStatus.Open:
+                        pass
+                    self.handle_syn_ack(p)
+                elif p.packet_type == PacketType.ACK.value and self.connection_status == ConnectionStatus.Open:
+                     self.handle_ack(p)
+                elif p.packet_type == PacketType.NAK.value and self.connection_status == ConnectionStatus.Open:
+                    self.handle_nack(p)
+                elif p.packet_type == PacketType.DATA.value and self.connection_status != ConnectionStatus.Listening:
+                    if self.connection_status == ConnectionStatus.Handshake:
+                        self.connection_status = ConnectionStatus.Open
+                    self.handle_data(p)
+            except Exception:
+                print("Error something went wrong in message_read_worker data is : {}".format(data))
+                pass
 
     def handle_syn(self, p, addr):
         self.tcp_child_connections_lock.acquire(True)
@@ -360,8 +361,11 @@ class Tcp:
         self.send_packet(p)
 
     def send_packet(self, p):
-        b = p.to_bytes()
-        self.connection.sendto(b, (self.router_addr, self.router_port))
+        try:
+            b = p.to_bytes()
+            self.connection.sendto(b, (self.router_addr, self.router_port))
+        except:
+            self.log("Error can't send packet {} to peer poor".format(p.seq_num, p.peer_port))
         #self.log('Send "{}" to router'.format(p.payload))
 
     def remove_tcp_child_connection(self, peer_ip_addr, peer_poor):
