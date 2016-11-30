@@ -17,7 +17,13 @@ client  -->  python3 lthree/main.py get 127.0.0.1
 
 
 GET
-python3 lthree/main.py get 127.0.0.1/body1.txt
+python3 lthree/main.py get 127.0.0.1
+
+GET SMALL FILE
+python3 lthree/main.py get -v 127.0.0.1/ex.html
+
+GET 100KB FILE
+python3 lthree/main.py get 127.0.0.1/100kb.txt
 
 POST
 python3 lthree/main.py post -h Content-Type:application/json --f lthree/testfiles/body1.txt 127.0.0.1/test_file.txt

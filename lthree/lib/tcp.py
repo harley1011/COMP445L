@@ -41,13 +41,17 @@ class Tcp:
         self.rec_seq_num = 0
         self.send_window = []
         self.connection_timeout_count = 5
+        self.max_ttl = 50
 
         self.payload_size = 1013
         self.max_seq_num = math.pow(2, 32)
         self.window_size = 10
         self.receive_window = [None] * self.window_size
-        self.max_time = 1
-        self.verbose = True
+        self.verbose = False
+
+        self.packet_ack_average_delay = 5
+        self.packet_ack_count = 5
+        self.use_dynamic_delay = False
 
     def start_listening(self, port):
         self.port = port
@@ -135,7 +139,7 @@ class Tcp:
                             self.log_packet("Sending packet type {}".format(PacketType(p.packet_type).name))
 
                         self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
-                        packet_and_timer = {'packet': p, 'timer': time.time()}
+                        packet_and_timer = {'packet': p, 'timer': time.time(), 'ack_timer': time.time()}
                         self.send_window.append(packet_and_timer)
                         self.log_packet("Send Window Size {}".format(len(self.send_window)))
                         try:
@@ -166,11 +170,11 @@ class Tcp:
                 now = time.time()
                 elapsed = now - timer
 
-                if elapsed >= self.max_time:
+                if elapsed >= self.packet_ack_average_delay:
                     try:
                         packet_and_timer['ttl'] -= 1
                     except:
-                        packet_and_timer['ttl'] = 50
+                        packet_and_timer['ttl'] = self.max_ttl
 
                     if packet_and_timer['ttl'] == 0:
                         self.log_packet('Packet {} ttl reached, removing packet from window'.format(p.seq_num))
@@ -300,6 +304,16 @@ class Tcp:
                 continue
             if p.seq_num == packet_and_timer['packet'].seq_num:
                 self.send_window[i] = None
+                self.packet_ack_count += 1
+                # Calculate moving average
+                if self.use_dynamic_delay:
+                    ack_time = time.time() - packet_and_timer['ack_timer']
+                    if 'ttl' in packet_and_timer:
+                        resend_weight = self.max_ttl / packet_and_timer['ttl'] * 6
+                    else:
+                        resend_weight = 0
+                    self.packet_ack_average_delay = ((self.packet_ack_average_delay * .7 + abs(ack_time - resend_weight) * .3) / 2) + .5
+                    self.log_packet("New packet average delay {}".format(self.packet_ack_average_delay))
                 self.log_packet('Packet {} removed from send window'.format(p.seq_num))
                 break
             elif i == len(self.send_window)-1:
@@ -321,6 +335,8 @@ class Tcp:
         if index < self.window_size:
             self.receive_window[index] = p
             self.log_packet("Storing payload in window at index {} payload is {}".format(index, p.payload))
+
+        self.log_packet("Receive window has {}".format(self.receive_window))
         self.evaluate_rec_window()
         self.send_ack(p.seq_num)
 
@@ -348,7 +364,7 @@ class Tcp:
 
         self.rec_seq_num = (p.seq_num+1) % (self.max_seq_num + 1)
         self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
-        packet_and_timer = {'packet': p, 'timer': time.time()}
+        packet_and_timer = {'packet': p, 'timer': time.time(), 'ack_timer': time.time()}
         self.send_window_lock.acquire(True)
         self.send_window.append(packet_and_timer)
         self.send_window_lock.release()
@@ -364,7 +380,7 @@ class Tcp:
                    peer_port=self.peer_port,
                    payload='')
         self.send_seq_num = (self.send_seq_num + 1) % (self.max_seq_num + 1)
-        packet_and_timer = {'packet': p, 'timer': time.time()}
+        packet_and_timer = {'packet': p, 'timer': time.time(), 'ack_timer': time.time()}
         self.send_window.append(packet_and_timer)
         self.send_packet(p)
         self.log_packet("Sending SYN")

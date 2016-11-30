@@ -82,7 +82,7 @@ def main(argv):
         for t in threads:
             t.join()
     else:
-        send_http(request)
+        return send_http(request)
 
 
 def get_request_type(argv):
@@ -186,6 +186,8 @@ def send_http(request):
     else:
         print(result.body)
 
+    return http_connection
+
 
 def print_request(request):
     output = {}
@@ -198,5 +200,5 @@ def print_request(request):
 
     print(s)
 
-
-main(sys.argv[1:])
+if __name__ == "__main__":
+    main(sys.argv[1:])

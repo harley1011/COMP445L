@@ -155,7 +155,7 @@ def get_file_type(path):
         return 'application/octet-stream'
 
 
+if __name__ == "__main__":
+    main(sys.argv[1:])
 
-
-main(sys.argv[1:])
 

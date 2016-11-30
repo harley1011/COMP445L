@@ -2,7 +2,11 @@ import unittest
 import time
 import lib.tcp as tcp
 import lib.connection_status as connection_status
+import threading
 
+import main
+import server
+from multiprocessing.pool import ThreadPool
 
 # Run using the command python3 -m unittest tests
 class TestHttp(unittest.TestCase):
@@ -97,6 +101,37 @@ class TestHttp(unittest.TestCase):
         print('{} bytes/s'.format(body_count/elapsed))
         conn.close()
         tcp_listener.close()
+
+    def test_http_get_file(self):
+        threading.Thread(target=server.main, args=([['-v', '-p', '5666', '-d', './testfiles']]), daemon=True).start()
+        result = main.main(['get', '-v', '127.0.0.1/ex.html'])
+        f = open('./testfiles/ex.html', 'r')
+        self.assertEquals(result.getresponse().body, f.read())
+
+    def test_http_get_huge_file(self):
+        threading.Thread(target=server.main, args=([['-v', '-p', '5666', '-d', './testfiles']]), daemon=True).start()
+        result = main.main(['get', '-v', '127.0.0.1/100kb.txt'])
+        f = open('./testfiles/100kb.txt', 'r')
+        self.assertEquals(result.getresponse().body, f.read())
+
+    def test_http_parallel_get_file(self):
+        threading.Thread(target=server.main, args=([['-v', '-p', '5666', '-d', './testfiles']]), daemon=True).start()
+        async_results = []
+        number_of_requests = 10
+        for i in range(0, number_of_requests):
+            print(" Starting Thread " + str(i))
+            pool = ThreadPool(processes=1)
+            async_result = pool.apply_async(main.main, [['get', '-v', '127.0.0.1/ex.html']])
+            async_results.append(async_result)
+        f = open('./testfiles/ex.html', 'r')
+        file_text = f.read()
+        f.close()
+        for i in range(0, number_of_requests):
+            print("Waiting for thread " + str(i))
+            result = async_result.get()
+            self.assertEquals(result.getresponse().body, file_text)
+
+
 
 
 
