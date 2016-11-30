@@ -94,6 +94,8 @@ class HttpConnection(object):
                     more_content = http_response.add_content(response)
                     if more_content:
                         break
+        except Exception:
+            print("Something wrong")
         finally:
             return http_response
 
@@ -122,7 +124,7 @@ class HttpResponse(object):
         except:
             self.body += body
 
-        return self.headers['Content-Length'] <= len(self.body)
+        return int(self.headers['Content-Length']) <= len(self.body)
 
     def parse_request(self, response):
         self.raw_response = response

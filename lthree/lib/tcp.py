@@ -46,7 +46,7 @@ class Tcp:
         self.max_seq_num = math.pow(2, 32)
         self.window_size = 10
         self.receive_window = [None] * self.window_size
-        self.max_time = 5
+        self.max_time = 1
         self.verbose = True
 
     def start_listening(self, port):
@@ -170,7 +170,7 @@ class Tcp:
                     try:
                         packet_and_timer['ttl'] -= 1
                     except:
-                        packet_and_timer['ttl'] = 20
+                        packet_and_timer['ttl'] = 50
 
                     if packet_and_timer['ttl'] == 0:
                         self.log_packet('Packet {} ttl reached, removing packet from window'.format(p.seq_num))
@@ -193,7 +193,7 @@ class Tcp:
                     self.log_packet('Message read worker terminating')
                     return
                 else:
-                    if self.connection_timeout_count == 0 and self.port != 0:
+                    if self.connection_timeout_count == 0 and self.peer_port != 0:
                         self.log_packet("Tcp connection hasn't heard from peer connection, terminating connection")
                         self.close()
                         return
