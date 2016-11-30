@@ -27,7 +27,7 @@ class TestHttp(unittest.TestCase):
 
         self.assertEquals(result, "Hello world".encode())
         for i in range(0, 10):
-            print("Try number {}\r\n\r\n\r\n".format(i + 1))
+            print("\r\nTry number {}\r\n".format(i + 1))
             message = "Hello world{0}".format(i + 1).encode()
             tcp_sender.send('localhost', 5666, message)
             result = conn.recv_from(100)
@@ -49,7 +49,7 @@ class TestHttp(unittest.TestCase):
         tcp_listener.start_listening(5666)
         time.sleep(1)
         for i in range(0, number_of_connections):
-            print("Try number {}\r\n\r\n\r\n".format(i + 1))
+            print("\r\nTry number {}\r\n".format(i + 1))
             message = "Hello world{0}".format(i + 1).encode()
             tcp_sender = tcp_senders[i]
             tcp_sender.send('localhost', 5666, message)
