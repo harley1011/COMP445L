@@ -77,12 +77,12 @@ class TestHttp(unittest.TestCase):
 
         conn, addr = tcp_listener.accept()
 
-        time.sleep(40)
-
         count = 0
         buf = bytearray()
         body_count = len(body)
+        timer = time.time()
         while count < body_count:
+            print("\r\n{} bytes received\r\n".format(count))
             read_bytes_num = body_count - count
             if read_bytes_num > 1000:
                 read_bytes_num = 1000
@@ -93,7 +93,8 @@ class TestHttp(unittest.TestCase):
         self.assertEquals(buf, body.encode())
         self.assertEquals(conn.connection_status, connection_status.ConnectionStatus.Open)
         self.assertEquals(tcp_sender.connection_status, connection_status.ConnectionStatus.Open)
-
+        elapsed = time.time() - timer
+        print('{} bytes/s'.format(body_count/elapsed))
         conn.close()
         tcp_listener.close()
 

@@ -193,7 +193,7 @@ class Tcp:
                     self.log_packet('Message read worker terminating')
                     return
                 else:
-                    if self.connection_timeout_count == 0:
+                    if self.connection_timeout_count == 0 and self.port != 0:
                         self.log_packet("Tcp connection hasn't heard from peer connection, terminating connection")
                         self.close()
                         return
